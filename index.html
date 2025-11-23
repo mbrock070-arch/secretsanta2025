@@ -11,13 +11,21 @@
             --rock-color-1: #795548; --rock-color-2: #5D4037;
             --progress-bg: #5D4037; --progress-fill: #76FF03;
         }
-        * { box-sizing: border-box; }
+        
+        /* NUCLEAR OPTION: Disable zooming and selection on EVERYTHING */
+        * { 
+            box-sizing: border-box; 
+            touch-action: manipulation; 
+            -webkit-tap-highlight-color: transparent;
+        }
+        
         body {
             background-color: var(--main-bg-color); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+            margin: 0; display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden;
             color: var(--text-color);
-            user-select: none; -webkit-user-select: none; touch-action: manipulation;
+            user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
         }
+        
         #login-container { text-align: center; }
         #game-wrapper { display: none; flex-direction: column; height: 100%; width: 100%; }
         
@@ -49,6 +57,7 @@
         .page { display: none; flex-direction: column; align-items: center; text-align: center; padding-bottom: 20px; }
         .page.active { display: flex; }
         
+        /* Tab Nav */
         .tab-nav { display: flex; width: 100%; border-top: 2px solid var(--ui-dark); background-color: #fff; flex-shrink: 0; padding-bottom: env(safe-area-inset-bottom); position: fixed; bottom: 0; z-index: 1000; height: 60px; }
         .tab-button { flex: 1 1 0px; padding: 0; background: none; border: none; font-size: 16px; font-weight: bold; cursor: pointer; color: var(--text-color); display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px; }
         .tab-button span { font-size: 20px; }
@@ -76,22 +85,13 @@
         /* Grid System */
         .upgrades-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; max-width: 450px; margin-top: 10px; }
         
-        /* Buttons */
-        button { font-size: 16px; padding: 12px 20px; margin-top: 10px; border: none; border-radius: 8px; color: white; background-color: var(--rock-color-1); cursor: pointer; width: 90%; max-width: 350px; font-weight: bold; box-shadow: 0 4px #4E342E; transition: all 0.1s; }
-        button:active { box-shadow: 0 1px #4E342E; transform: translateY(3px); }
-        
-        /* DISABLED STATE - CRITICAL FOR UX */
-        button:disabled, .action-button:disabled { 
-            background-color: #BCAAA4 !important; 
-            cursor: not-allowed !important; 
-            box-shadow: none !important; 
-            transform: none !important; 
-            opacity: 0.6 !important; 
-            color: #5D4037 !important;
-        }
-        
         /* Upgrade Cards */
-        .upgrade-btn { display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 8px 5px; height: 100px !important; width: 100% !important; font-size: 13px; margin: 0 !important; border: none; border-radius: 8px; color: white; cursor: pointer; box-shadow: 0 3px #3E2723; transition: all 0.1s; line-height: 1.3; }
+        .upgrade-btn {
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            padding: 8px 5px; height: 100px !important; width: 100% !important; font-size: 13px; 
+            margin: 0 !important; border: none; border-radius: 8px; color: white; cursor: pointer;
+            box-shadow: 0 3px #3E2723; transition: all 0.1s; line-height: 1.3;
+        }
         .upgrade-btn:active { box-shadow: 0 1px #3E2723; transform: translateY(2px); }
         .btn-passive { background-color: #795548; }
         .btn-active { background-color: #5D4037; } 
@@ -99,8 +99,19 @@
         .btn-details { background: rgba(0,0,0,0.2); padding: 4px; border-radius: 4px; width: 95%; display: flex; flex-direction: column; align-items: center; }
         .btn-bonus { font-size: 10px; color: #FFECB3; margin-bottom: 2px; font-style: italic; }
         .btn-cost { font-weight: bold; color: #FFF; font-size: 11px; }
+        .hidden-upgrade { display: none !important; }
         
-        /* Action Buttons */
+        .msg-high-priority { background-color: #FFECB3; color: #BF360C; font-weight: bold; border-left: 5px solid #FF6F00; }
+        .msg-attack { color: #D32F2F; background-color: rgba(255, 205, 210, 0.3); }
+        .msg-fun { color: #00796B; }
+        .msg-system { color: #5D4037; font-style: italic; }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+        
+        /* Standard Buttons */
+        button { font-size: 16px; padding: 12px 20px; margin-top: 10px; border: none; border-radius: 8px; color: white; background-color: var(--rock-color-1); cursor: pointer; width: 90%; max-width: 350px; font-weight: bold; box-shadow: 0 4px #4E342E; transition: all 0.1s; }
+        button:active { box-shadow: 0 1px #4E342E; transform: translateY(3px); }
+        button:disabled, .action-button:disabled { background-color: #A1887F !important; cursor: not-allowed !important; box-shadow: none !important; transform: none !important; opacity: 0.6 !important; color: #5D4037 !important; }
+        
         .action-button { font-size: 12px; padding: 6px 4px; margin: 0; width: 23%; box-shadow: 0 2px #333; flex-grow: 1; color: white; border-radius: 4px; border: none; cursor: pointer; }
         .crack-button { background-color: #FF5722; }
         .poke-button { background-color: #FF9800; }
@@ -109,13 +120,16 @@
         .cat-button { background-color: #009688; }
         #sacrifice-button { background-color: #D32F2F; width: 100%; grid-column: span 2; margin-top: 15px; height: auto; padding: 15px; }
         
-        .hidden-upgrade { display: none !important; }
-        .msg-high-priority { background-color: #FFECB3; color: #BF360C; font-weight: bold; border-left: 5px solid #FF6F00; }
-        .msg-attack { color: #D32F2F; background-color: rgba(255, 205, 210, 0.3); }
-        .msg-fun { color: #00796B; }
-        .msg-system { color: #5D4037; font-style: italic; }
-        
-        #clicker-button { position: relative; transition: top 0.1s ease-out, left 0.1s ease-out, transform 0.1s; border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%; width: 220px; height: 200px; background: radial-gradient(circle at 30% 30%, var(--rock-color-1), var(--rock-color-2)); border: none; color: #EFEBE9; padding: 0; display: flex; justify-content: center; align-items: center; box-shadow: inset -10px -10px 20px rgba(0,0,0,0.4), inset 10px 10px 20px rgba(255,255,255,0.2), 0 8px 5px rgba(0,0,0,0.3); text-shadow: 2px 2px 4px rgba(0,0,0,0.5); margin-top: 20px; -webkit-tap-highlight-color: transparent; }
+        #clicker-button {
+            position: relative; transition: top 0.1s ease-out, left 0.1s ease-out, transform 0.1s;
+            border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+            width: 220px; height: 200px;
+            background: radial-gradient(circle at 30% 30%, var(--rock-color-1), var(--rock-color-2));
+            border: none; color: #EFEBE9; padding: 0;
+            display: flex; justify-content: center; align-items: center;
+            box-shadow: inset -10px -10px 20px rgba(0,0,0,0.4), inset 10px 10px 20px rgba(255,255,255,0.2), 0 8px 5px rgba(0,0,0,0.3);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5); margin-top: 20px;
+        }
         #clicker-button h2 { font-size: 32px; margin: 0; pointer-events: none; font-weight: 900; }
         #clicker-button:active { transform: scale(0.97) translateY(3px); box-shadow: inset -8px -8px 15px rgba(0,0,0,0.5), inset 8px 8px 15px rgba(255,255,255,0.1), 0 3px 3px rgba(0,0,0,0.3); }
         #clicker-button.stage-2 { background: repeating-linear-gradient(45deg, var(--rock-color-1), var(--rock-color-2) 10px, #3E2723 10px, #3E2723 12px); border: 2px dashed #3E2723; }
@@ -128,8 +142,21 @@
         #secret-code-container { margin-bottom: 10px; }
         #code-display { display: flex; gap: 8px; justify-content: center; }
         .code-box { width: 40px; height: 55px; border: 2px solid var(--text-color); display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 900; border-radius: 8px; background-color: #FFF8E1; color: var(--text-color); }
+        
         .my-stats-display { display: flex; justify-content: center; gap: 10px; margin-top: 10px; font-size: 13px; padding: 10px; border: 2px dashed var(--ui-dark); border-radius: 12px; background-color: #D7CCC8; margin-bottom: 10px; font-weight: bold; width: 100%; flex-wrap: wrap; }
-        #sticky-upgrades-header { position: sticky; top: -20px; z-index: 100; background-color: var(--main-bg-color); width: 100%; padding: 10px; border-bottom: 1px solid var(--ui-dark); font-size: 20px; font-weight: bold; color: var(--accent-color); margin-bottom: 10px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        
+        /* Sticky Header for Upgrades Mass */
+        #sticky-upgrades-header {
+            position: sticky; top: -20px; z-index: 100;
+            background-color: var(--main-bg-color);
+            width: 100%; padding: 10px;
+            border-bottom: 1px solid var(--ui-dark);
+            font-size: 20px; font-weight: bold; color: var(--accent-color);
+            margin-bottom: 10px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
         .shake-effect { animation: shake 0.5s infinite; }
         .flip-effect { transform: rotate(180deg); }
         @keyframes shake { 0% { transform: translate(9px, 9px) rotate(0deg); } 10% { transform: translate(-9px, -18px) rotate(-1deg); } 20% { transform: translate(-27px, 0px) rotate(1deg); } 30% { transform: translate(27px, 18px) rotate(0deg); } 40% { transform: translate(9px, -9px) rotate(1deg); } 50% { transform: translate(-9px, 18px) rotate(-1deg); } 60% { transform: translate(-27px, 9px) rotate(0deg); } 70% { transform: translate(27px, 9px) rotate(-1deg); } 80% { transform: translate(-9px, -9px) rotate(1deg); } 90% { transform: translate(9px, 18px) rotate(0deg); } 100% { transform: translate(9px, -18px) rotate(-1deg); } }
@@ -144,6 +171,11 @@
         .full-screen-overlay h2 { color: #FFCC80; margin-bottom: 20px; font-size: 32px; line-height: 1.2; }
         .full-screen-overlay p { color: #EFEBE9; font-size: 20px; margin-bottom: 30px; line-height: 1.5; }
         .full-screen-overlay button { background-color: #BF360C; width: 100%; max-width: 300px; font-size: 22px; padding: 15px; }
+        
+        #help-overlay ul { text-align: left; margin: 20px 0; font-size: 16px; line-height: 1.5; color: #EFEBE9; padding-left: 20px; max-width: 400px; }
+        #help-overlay li { margin-bottom: 10px; }
+        #help-overlay strong { color: #FFB300; }
+        
         #waiting-overlay p { font-family: monospace; color: #81C784; font-size: 16px; }
         #waiting-spinner { width: 50px; height: 50px; border: 5px solid #EFEBE9; border-top: 5px solid #BF360C; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -165,29 +197,8 @@
         .naughty-list h4 { margin: 0 0 5px 0; font-size: 14px; color: #D32F2F; font-weight: 900; }
         .naughty-item { font-size: 12px; padding: 4px 0; border-bottom: 1px dashed #A1887F; line-height: 1.4; }
         .naughty-item strong { color: #3E2723; }
+        /* Final Code Display */
         #final-code-display { background-color: #3E2723; color: #FFD700; font-family: monospace; font-size: 60px; font-weight: 900; padding: 20px; border: 4px solid #FFD700; border-radius: 15px; margin-bottom: 30px; letter-spacing: 10px; text-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
-        
-        /* HELP OVERLAY */
-        #help-overlay { background-color: rgba(0,0,0,0.9); z-index: 3000; }
-        #help-overlay ul { text-align: left; margin: 20px 0; font-size: 16px; line-height: 1.5; color: #EFEBE9; padding-left: 20px; }
-        #help-overlay li { margin-bottom: 10px; }
-        #help-overlay strong { color: #FFB300; }
-        #help-close-btn { margin-top: 20px; }
-        
-        @media (max-width: 600px) {
-            h1 { font-size: 26px; }
-            #score-display { font-size: 24px; }
-            #clicker-button { width: 180px; height: 160px; }
-            #clicker-button h2 { font-size: 24px; }
-            .tab-button { font-size: 16px; padding: 12px 2px; }
-            .my-stats-display { gap: 5px; padding: 8px; font-size: 12px; }
-            .code-box { width: 35px; height: 50px; font-size: 24px; }
-            #announcement-bar { height: 120px; }
-            .announcement-message { font-size: 11px; padding: 2px 8px; }
-            button { padding: 12px 15px; }
-            #upgrades-grid { gap: 5px; }
-            .upgrade-btn { font-size: 12px; }
-        }
     </style>
 </head>
 <body>
@@ -369,7 +380,7 @@
         <nav class="tab-nav locked-feature">
             <button class="tab-button active" data-page="game-page"><span>🖱️</span>Mine</button>
             <button class="tab-button" data-page="upgrades-page"><span>💎</span>Upgrades</button>
-            <button class="tab-button" data-page="leaderboard-page"><span>🎭</span>Pranks</button>
+            <button class="tab-button" data-page="leaderboard-page"><span>🎭</span>Pranks & Ranks</button>
         </nav>
     </div>
 
@@ -396,11 +407,15 @@
             whoosh: document.getElementById('whoosh-sound'),
             meow: document.getElementById('meow-sound')
         };
+        
+        // PREVENT ZOOM
+        document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
+        document.addEventListener('dblclick', function(e) { e.preventDefault(); });
 
         let lastClickSoundTime = 0;
+        let canClick = true;
 
         function unlockAudio() {
-            // Safari hack: Play all sounds at vol 0 on first interaction
             for (let key in sounds) {
                 if(sounds[key]) {
                     sounds[key].volume = 0; 
@@ -502,11 +517,6 @@
             summaryContent: document.getElementById('summary-content'),
             finalCodeDisplay: document.getElementById('final-code-display'),
             
-            // HELP OVERLAY
-            helpBtn: document.getElementById('help-btn'),
-            helpOverlay: document.getElementById('help-overlay'),
-            helpCloseBtn: document.getElementById('help-close-btn'),
-            
             // BUTTON REFS for Visibility & Enabling
             btnHelper: document.getElementById('purchase-helper-button'),
             btnTnt: document.getElementById('purchase-tnt-button'),
@@ -515,7 +525,11 @@
             btnClick: document.getElementById('purchase-power-click-button'),
             btnCrit: document.getElementById('purchase-crit-button'),
             btnSynergy: document.getElementById('purchase-synergy-button'),
-            btnSacrifice: document.getElementById('sacrifice-button')
+            btnSacrifice: document.getElementById('sacrifice-button'),
+            
+            helpBtn: document.getElementById('help-btn'),
+            helpOverlay: document.getElementById('help-overlay'),
+            helpCloseBtn: document.getElementById('help-close-btn')
         };
         
         let isGremlined = false;
@@ -529,7 +543,7 @@
         let myCritChance = 0;
         let mySynergy = 0;
         let myPassiveIncome = 0;
-        let myCurrentScore = 0; // Track local score for immediate UI updates
+        let myCurrentScore = 0; 
 
         function getPlayerId() {
             let playerId = localStorage.getItem('partyClickerPlayerId');
@@ -566,7 +580,7 @@
             if (isCrit) particle.classList.add('crit');
             particle.textContent = (isCrit ? 'CRIT! ' : '+') + Math.floor(value).toLocaleString();
             particle.style.left = `${x}px`;
-            particle.style.top = `${y - 80}px`;
+            particle.style.top = `${y - 80}px`; 
             document.body.appendChild(particle);
             setTimeout(() => { particle.remove(); }, 1000);
         }
@@ -588,6 +602,10 @@
         const updateBtnTitle = (el, title, count) => {
             el.textContent = count > 0 ? `${title} (Owned: ${count})` : title;
         };
+
+        // LISTENERS FOR REFRESH & RESET
+        socket.on('forceRefresh', () => { window.location.reload(); });
+        window.resetGameNow = function() { if(confirm("⚠️ ARE YOU SURE? This will wipe the server and kick everyone.")) { socket.emit('adminResetGame'); } }
 
         elements.joinButton.addEventListener('click', () => {
             const playerName = elements.nameInput.value.trim();
@@ -762,6 +780,7 @@
             
             elements.totalMassDisplay.textContent = Math.floor(totalScore).toLocaleString();
             elements.headerMultiplier.textContent = `${partyMultiplier}x`;
+            
             elements.sacrificeCostDisplay.textContent = sacrificeCost.toLocaleString();
             const myId = getPlayerId();
             
@@ -796,7 +815,7 @@
             // *** VISUAL UPDATE LOOP ***
             const myServerState = players[myId];
             if (myServerState) {
-                myCurrentScore = myServerState.score; // Store for affordability checks
+                myCurrentScore = myServerState.score; // Critical for checkAffordability
                 myClickPower = myServerState.clickPower;
                 myCritChance = myServerState.critChance || 0;
                 mySynergy = myServerState.synergyLevel || 0;
@@ -804,29 +823,36 @@
                 
                 // FOG OF WAR VISIBILITY
                 const lifetime = myServerState.totalEarnedMass || 0;
-                if (lifetime < 250 * 0.66) elements.btnTnt.classList.add('hidden-upgrade'); else elements.btnTnt.classList.remove('hidden-upgrade');
-                if (lifetime < 500 * 0.66) elements.btnCrit.classList.add('hidden-upgrade'); else elements.btnCrit.classList.remove('hidden-upgrade');
-                if (lifetime < 1000 * 0.66) elements.btnDrill.classList.add('hidden-upgrade'); else elements.btnDrill.classList.remove('hidden-upgrade');
-                if (lifetime < 2500 * 0.66) elements.btnSynergy.classList.add('hidden-upgrade'); else elements.btnSynergy.classList.remove('hidden-upgrade');
-                if (lifetime < 15000 * 0.66) elements.btnExcavator.classList.add('hidden-upgrade'); else elements.btnExcavator.classList.remove('hidden-upgrade');
-                if (lifetime < 7500 * 0.66) elements.sacrificeButton.classList.add('hidden-upgrade'); else elements.sacrificeButton.classList.remove('hidden-upgrade');
+                
+                const updateVisibilityAndStats = (cost, btn, countDisplay, statEl, count) => {
+                    if (lifetime < cost * 0.66) btn.classList.add('hidden-upgrade'); 
+                    else btn.classList.remove('hidden-upgrade');
+                    checkAffordability(cost, btn); // Visually disable if broke
+                    countDisplay.textContent = count || 0;
+                    if(statEl) statEl.style.display = (count || 0) > 0 ? 'inline' : 'none';
+                };
 
-                // *** AFFORDABILITY CHECKS ***
-                checkAffordability(myServerState.nextHelperCost, elements.btnHelper);
-                checkAffordability(myServerState.nextTntCost, elements.btnTnt);
-                checkAffordability(myServerState.nextDrillCost, elements.btnDrill);
-                checkAffordability(myServerState.nextExcavatorCost, elements.btnExcavator);
+                updateVisibilityAndStats(myServerState.nextHelperCost, elements.btnHelper, elements.helperCountDisplay, elements.statGeologist, myServerState.helpers);
+                updateVisibilityAndStats(myServerState.nextTntCost, elements.btnTnt, elements.tntCountDisplay, elements.statTnt, myServerState.tnt);
+                updateVisibilityAndStats(myServerState.nextDrillCost, elements.btnDrill, elements.drillCountDisplay, elements.statDrill, myServerState.drills);
+                updateVisibilityAndStats(myServerState.nextExcavatorCost, elements.btnExcavator, elements.excavatorCountDisplay, elements.statExcavator, myServerState.excavators);
+                updateVisibilityAndStats(myServerState.nextCritCost, elements.btnCrit, elements.critCountDisplay, elements.statCrit, myServerState.critChance);
+                updateVisibilityAndStats(myServerState.nextSynergyCost, elements.btnSynergy, elements.synergyCountDisplay, elements.statSynergy, myServerState.synergyLevel);
+                
+                // Pickaxe always visible
                 checkAffordability(myServerState.nextPowerClickCost, elements.btnClick);
-                checkAffordability(myServerState.nextCritCost, elements.btnCrit);
-                checkAffordability(myServerState.nextSynergyCost, elements.btnSynergy);
+                elements.clickCountDisplay.textContent = myServerState.clickPower;
+                
+                // Sacrifice
+                if (lifetime < 7500 * 0.66) elements.sacrificeButton.classList.add('hidden-upgrade'); 
+                else elements.sacrificeButton.classList.remove('hidden-upgrade');
                 checkAffordability(sacrificeCost, elements.sacrificeButton);
                 
-                // Leaderboard Prank Affordability Check
+                // Update Prank Buttons (Check Affordability only)
                 const prankButtons = document.querySelectorAll('.leaderboard-actions .action-button');
                 prankButtons.forEach(btn => {
-                    let cost = 0;
-                    if (btn.classList.contains('crack-button')) cost = 100;
-                    else if (btn.classList.contains('cat-button')) cost = 250;
+                    let cost = 100; // Default crack
+                    if (btn.classList.contains('cat-button')) cost = 250;
                     else if (btn.classList.contains('flip-button')) cost = 500;
                     else if (btn.classList.contains('gremlin-button')) cost = 750;
                     checkAffordability(cost, btn);
@@ -838,31 +864,12 @@
                 elements.passiveRateDisplay.textContent = `(+${Math.floor(myPassiveIncome * myMulti).toLocaleString()}/sec)`;
                 
                 // STAT VISIBILITY & VALUES
-                elements.statGeologist.style.display = myServerState.helpers > 0 ? 'inline' : 'none';
-                elements.myHelpersDisplay.textContent = myServerState.helpers;
                 updateBtnTitle(elements.helperTitle, "Geologist", myServerState.helpers);
-                
-                elements.statTnt.style.display = (myServerState.tnt || 0) > 0 ? 'inline' : 'none';
-                elements.myTntDisplay.textContent = myServerState.tnt || 0;
                 updateBtnTitle(elements.tntTitle, "TNT Charge", myServerState.tnt || 0);
-                
-                elements.statDrill.style.display = (myServerState.drills || 0) > 0 ? 'inline' : 'none';
-                elements.myDrillsDisplay.textContent = myServerState.drills || 0;
                 updateBtnTitle(elements.drillTitle, "Ind. Drill", myServerState.drills || 0);
-                
-                elements.statExcavator.style.display = (myServerState.excavators || 0) > 0 ? 'inline' : 'none';
-                elements.myExcavatorsDisplay.textContent = myServerState.excavators || 0;
                 updateBtnTitle(elements.excavatorTitle, "Excavator", myServerState.excavators || 0);
-                
-                elements.statCrit.style.display = (myServerState.critChance || 0) > 0 ? 'inline' : 'none';
-                elements.myCritDisplay.textContent = `${myServerState.critChance || 0}%`;
                 updateBtnTitle(elements.critTitle, "Lucky Geode", myServerState.critChance || 0);
-                
-                elements.statSynergy.style.display = (myServerState.synergyLevel || 0) > 0 ? 'inline' : 'none';
-                elements.mySynergyDisplay.textContent = `${myServerState.synergyLevel || 0}%`;
                 updateBtnTitle(elements.synergyTitle, "Middle Manager", myServerState.synergyLevel || 0);
-                
-                elements.myClickPowerDisplay.textContent = myServerState.clickPower;
                 updateBtnTitle(elements.clickTitle, "Pickaxe", myServerState.clickPower);
 
                 // COSTS
