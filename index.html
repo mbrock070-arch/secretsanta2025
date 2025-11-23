@@ -12,81 +12,120 @@
             --progress-bg: #5D4037; --progress-fill: #76FF03;
         }
         * { box-sizing: border-box; }
+        
         body {
-            background-color: var(--main-bg-color); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+            background-color: var(--main-bg-color); 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0; 
+            height: 100dvh; /* Dynamic Viewport Height for mobile bars */
+            width: 100vw;
+            overflow: hidden; /* Prevent body scroll */
             color: var(--text-color);
             user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
         }
-        #login-container { text-align: center; }
-        #game-wrapper { display: none; flex-direction: column; height: 100%; width: 100%; }
-        
-        .static-header { padding: 10px 10px 5px 10px; display: flex; flex-direction: column; align-items: center; flex-shrink: 0; width: 100%; }
-        .locked-feature { display: none !important; }
 
-        /* Global Stats Bar */
+        #game-wrapper { 
+            display: none; 
+            flex-direction: column; 
+            height: 100%; 
+            width: 100%; 
+        }
+        
+        /* --- HEADER (Fixed at Top) --- */
+        .static-header { 
+            padding: 10px 10px 5px 10px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            flex-shrink: 0; 
+            width: 100%; 
+            background-color: var(--main-bg-color); /* Cover content scrolling behind */
+            z-index: 10;
+        }
+
+        /* --- CONTENT (Scrollable Middle) --- */
+        .main-content { 
+            flex-grow: 1; 
+            width: 100%; 
+            overflow-y: auto; 
+            padding: 10px 20px 80px 20px; /* Extra bottom padding for nav bar */
+            transition: transform 0.5s ease-in-out; 
+            -webkit-overflow-scrolling: touch; 
+            position: relative; 
+        }
+        .page { display: none; flex-direction: column; align-items: center; text-align: center; padding-bottom: 20px; }
+        .page.active { display: flex; }
+
+        /* --- FOOTER (Fixed at Bottom) --- */
+        .tab-nav { 
+            position: fixed; 
+            bottom: 0; 
+            left: 0;
+            width: 100%; 
+            height: 60px;
+            display: flex; 
+            border-top: 2px solid var(--ui-dark); 
+            background-color: #fff; 
+            z-index: 1000; /* Always on top */
+            padding-bottom: env(safe-area-inset-bottom); /* iPhone X+ Safety */
+        }
+        .tab-button { 
+            flex: 1; 
+            background: none; 
+            border: none; 
+            font-size: 24px; 
+            cursor: pointer; 
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+        .tab-button.active { background-color: var(--ui-light); border-top: 4px solid var(--accent-color); color: var(--accent-color); }
+
+        /* --- LOGIN SCREEN --- */
+        #login-container { 
+            text-align: center; 
+            height: 100%; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center;
+        }
+
+        /* --- COMPONENTS --- */
+        .locked-feature { display: none !important; }
+        .hidden-upgrade { display: none !important; }
+
+        /* Stats Bars */
         #global-stats-bar { display: flex; justify-content: space-between; width: 100%; max-width: 450px; font-size: 12px; color: var(--text-color); margin-bottom: 3px; }
         #global-stats-bar span { font-weight: bold; }
+        
+        /* Progress Bar */
         #party-progress-container { width: 100%; max-width: 450px; margin-bottom: 5px; text-align: center; }
         #progress-bar-bg { width: 100%; height: 15px; background-color: var(--progress-bg); border-radius: 10px; overflow: hidden; border: 1px solid #3E2723; box-shadow: inset 0 2px 5px rgba(0,0,0,0.5); position: relative; }
         #progress-bar-fill { height: 100%; width: 0%; background-color: var(--progress-fill); background-image: linear-gradient(45deg, rgba(255,255,255,.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.15) 75%, transparent 75%, transparent); background-size: 20px 20px; transition: width 0.5s ease-in-out; }
         #progress-text { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; font-weight: bold; text-shadow: 1px 1px 2px black; line-height: 1; }
-
-        .main-content { flex-grow: 1; width: 100%; overflow-y: auto; padding: 10px 20px; transition: transform 0.5s ease-in-out; -webkit-overflow-scrolling: touch; position: relative; }
-        .page { display: none; flex-direction: column; align-items: center; text-align: center; padding-bottom: 20px; }
-        .page.active { display: flex; }
         
-        /* Tabs */
-        .tab-nav { display: flex; width: 100%; border-top: 2px solid var(--ui-dark); background-color: #fff; flex-shrink: 0; padding-bottom: env(safe-area-inset-bottom); }
-        .tab-button { flex: 1 1 0px; padding: 15px 5px; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-color); }
-        .tab-button.active { background-color: var(--ui-light); border-bottom: 4px solid var(--accent-color); color: var(--accent-color); }
-        
-        #shake-wrapper { position: relative; min-height: 50vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; width: 100%; }
-        
-        /* Stats Display */
-        #my-score-display { font-size: 28px; font-weight: 900; color: var(--accent-color); margin: 10px 0 0 0; text-shadow: 1px 1px 0px rgba(0,0,0,0.1); }
-        /* NEW: Restored Passive Rate */
-        #passive-rate-display { font-size: 14px; color: #5D4037; margin: 2px 0 10px 0; font-weight: bold; opacity: 0.8; }
-        
-        h3 { margin: 15px 0 5px 0; font-size: 16px; text-transform: uppercase; color: var(--text-color); border-bottom: 2px solid var(--ui-dark); width: 100%; max-width: 450px; }
-        p { margin: 8px 0; font-size: 18px; }
-        
+        /* Leaderboard */
         #leaderboard { margin-top: 15px; border-top: 2px solid var(--ui-dark); padding-top: 10px; width: 100%; max-width: 400px; }
         .leaderboard-entry { display: flex; flex-direction: column; padding: 8px; background-color: var(--ui-light); border-radius: 8px; margin-bottom: 8px; border: 1px solid var(--ui-dark); font-weight: bold; font-size: 14px; }
         .leaderboard-info { display: flex; justify-content: space-between; width: 100%; margin-bottom: 5px; }
         .leaderboard-actions { display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; }
-        
+        .my-entry-name { cursor: pointer; text-decoration: underline; text-decoration-style: dotted; color: #BF360C; }
+
+        /* Announcement Feed */
         #announcement-bar { width: 100%; max-width: 450px; background-color: #FFF8E1; border: 2px solid #FFB300; border-radius: 8px; height: 120px; overflow: hidden; display: flex; flex-direction: column; }
         .announcement-message { padding: 2px 8px; margin: 0 !important; border-bottom: 1px solid rgba(0,0,0,0.1); text-align: left; animation: slideIn 0.2s ease-out; font-weight: 500; font-size: 12px; display: flex; align-items: center; flex-shrink: 0; line-height: 1.3; min-height: 20px; }
         .announcement-message:last-child { border-bottom: none; }
-        
-        /* Grid System */
-        .upgrades-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; max-width: 450px; margin-top: 10px; }
-        
-        /* Upgrade Cards */
-        .upgrade-btn {
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            padding: 8px 5px; height: 100px !important; width: 100% !important; font-size: 13px; 
-            margin: 0 !important; border: none; border-radius: 8px; color: white; cursor: pointer;
-            box-shadow: 0 3px #3E2723; transition: all 0.1s; line-height: 1.3;
-        }
-        .upgrade-btn:active { box-shadow: 0 1px #3E2723; transform: translateY(2px); }
-        .btn-passive { background-color: #795548; }
-        .btn-active { background-color: #5D4037; } 
-        
-        .btn-title { font-weight: 900; font-size: 13px; margin-bottom: 4px; display: block; }
-        .btn-details { background: rgba(0,0,0,0.2); padding: 4px; border-radius: 4px; width: 95%; display: flex; flex-direction: column; align-items: center; }
-        .btn-bonus { font-size: 10px; color: #FFECB3; margin-bottom: 2px; font-style: italic; }
-        .btn-cost { font-weight: bold; color: #FFF; font-size: 11px; }
-
-        .hidden-upgrade { display: none !important; }
-        
         .msg-high-priority { background-color: #FFECB3; color: #BF360C; font-weight: bold; border-left: 5px solid #FF6F00; }
         .msg-attack { color: #D32F2F; background-color: rgba(255, 205, 210, 0.3); }
         .msg-fun { color: #00796B; }
         .msg-system { color: #5D4037; font-style: italic; }
-        @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
-        
+
+        /* Buttons */
         button { font-size: 16px; padding: 12px 20px; margin-top: 10px; border: none; border-radius: 8px; color: white; background-color: var(--rock-color-1); cursor: pointer; width: 90%; max-width: 350px; font-weight: bold; box-shadow: 0 4px #4E342E; transition: all 0.1s; }
         button:active { box-shadow: 0 1px #4E342E; transform: translateY(3px); }
         button:disabled { background-color: #A1887F; cursor: not-allowed; box-shadow: none; transform: none; opacity: 0.7; }
@@ -97,7 +136,9 @@
         .gremlin-button { background-color: #9C27B0; }
         .cat-button { background-color: #009688; }
         #sacrifice-button { background-color: #D32F2F; width: 100%; grid-column: span 2; margin-top: 15px; height: auto; padding: 15px; }
-        
+
+        /* Rock Button */
+        #shake-wrapper { width: 100%; display: flex; flex-direction: column; align-items: center; }
         #clicker-button {
             position: relative; transition: top 0.1s ease-out, left 0.1s ease-out, transform 0.1s;
             border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
@@ -115,35 +156,48 @@
         #clicker-button.stage-3 { background: radial-gradient(circle at 50% 50%, #7B1FA2, var(--rock-color-1)); box-shadow: 0 0 15px #7B1FA2; color: #FFF; }
         #clicker-button.stage-4 { background: radial-gradient(circle at 50% 50%, #FFD700, #BF360C); box-shadow: 0 0 25px #FFD700; animation: pulse 0.5s infinite alternate; color: #000; text-shadow: none; }
         @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.05); } }
-        .floating-number { position: absolute; color: #FFD700; font-weight: bold; font-size: 24px; pointer-events: none; user-select: none; animation: floatUp 1s ease-out forwards; z-index: 1000; text-shadow: 1px 1px 0 #000; }
-        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-80px) scale(1.5); } }
-        input { font-size: 18px; padding: 12px; border-radius: 8px; border: 2px solid var(--ui-dark); background-color: var(--ui-light); color: var(--text-color); width: 80%; max-width: 300px; margin-bottom: 10px; }
+
+        /* Upgrade Cards */
+        .upgrades-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; max-width: 450px; margin-top: 10px; }
+        .upgrade-btn {
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            padding: 8px 5px; height: 100px !important; width: 100% !important; font-size: 13px; 
+            margin: 0 !important; border: none; border-radius: 8px; color: white; cursor: pointer;
+            box-shadow: 0 3px #3E2723; transition: all 0.1s; line-height: 1.3;
+        }
+        .upgrade-btn:active { box-shadow: 0 1px #3E2723; transform: translateY(2px); }
+        .btn-passive { background-color: #795548; }
+        .btn-active { background-color: #5D4037; } 
+        .btn-title { font-weight: 900; font-size: 13px; margin-bottom: 4px; display: block; }
+        .btn-details { background: rgba(0,0,0,0.2); padding: 4px; border-radius: 4px; width: 95%; display: flex; flex-direction: column; align-items: center; }
+        .btn-bonus { font-size: 10px; color: #FFECB3; margin-bottom: 2px; font-style: italic; }
+        .btn-cost { font-weight: bold; color: #FFF; font-size: 11px; }
+
+        /* Stats & Typography */
+        #my-score-display { font-size: 28px; font-weight: 900; color: var(--accent-color); margin: 10px 0 0 0; text-shadow: 1px 1px 0px rgba(0,0,0,0.1); }
+        #passive-rate-display { font-size: 14px; color: #5D4037; margin: 2px 0 10px 0; font-weight: bold; opacity: 0.8; }
+        h3 { margin: 15px 0 5px 0; font-size: 16px; text-transform: uppercase; color: var(--text-color); border-bottom: 2px solid var(--ui-dark); width: 100%; max-width: 450px; }
+        p { margin: 8px 0; font-size: 18px; }
+        .my-stats-display { display: flex; justify-content: center; gap: 10px; margin-top: 10px; font-size: 13px; padding: 10px; border: 2px dashed var(--ui-dark); border-radius: 12px; background-color: #D7CCC8; margin-bottom: 10px; font-weight: bold; width: 100%; flex-wrap: wrap; }
+        #sticky-upgrades-header { position: sticky; top: -20px; z-index: 100; background-color: var(--main-bg-color); width: 100%; padding: 10px; border-bottom: 1px solid var(--ui-dark); font-size: 20px; font-weight: bold; color: var(--accent-color); margin-bottom: 10px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         #secret-code-container { margin-bottom: 10px; }
         #code-display { display: flex; gap: 8px; justify-content: center; }
         .code-box { width: 40px; height: 55px; border: 2px solid var(--text-color); display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 900; border-radius: 8px; background-color: #FFF8E1; color: var(--text-color); }
-        
-        .my-stats-display { display: flex; justify-content: center; gap: 10px; margin-top: 10px; font-size: 13px; padding: 10px; border: 2px dashed var(--ui-dark); border-radius: 12px; background-color: #D7CCC8; margin-bottom: 10px; font-weight: bold; width: 100%; flex-wrap: wrap; }
-        
-        #sticky-upgrades-header {
-            position: sticky; top: -20px; z-index: 100;
-            background-color: var(--main-bg-color);
-            width: 100%; padding: 10px;
-            border-bottom: 1px solid var(--ui-dark);
-            font-size: 20px; font-weight: bold; color: var(--accent-color);
-            margin-bottom: 10px;
-            text-align: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
+        input { font-size: 18px; padding: 12px; border-radius: 8px; border: 2px solid var(--ui-dark); background-color: var(--ui-light); color: var(--text-color); width: 80%; max-width: 300px; margin-bottom: 10px; }
 
+        /* Animations & Effects */
+        .floating-number { position: absolute; color: #FFD700; font-weight: bold; font-size: 24px; pointer-events: none; user-select: none; animation: floatUp 1s ease-out forwards; z-index: 1000; text-shadow: 1px 1px 0 #000; }
+        .floating-number.crit { color: #FF5252; font-size: 36px; text-shadow: 2px 2px 0 #000; z-index: 1001; }
+        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-80px) scale(1.5); } }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+        .cat-container { position: fixed; top: 30%; left: -200px; font-size: 150px; line-height: 1; z-index: 1600; pointer-events: none; animation: walk 12s linear forwards; }
+        @keyframes walk { 0% { left: -200px; transform: rotate(0deg); } 25% { transform: rotate(10deg); } 50% { transform: rotate(-10deg); } 75% { transform: rotate(10deg); } 100% { left: 100%; transform: rotate(0deg); } }
         .shake-effect { animation: shake 0.5s infinite; }
         .flip-effect { transform: rotate(180deg); }
         @keyframes shake { 0% { transform: translate(9px, 9px) rotate(0deg); } 10% { transform: translate(-9px, -18px) rotate(-1deg); } 20% { transform: translate(-27px, 0px) rotate(1deg); } 30% { transform: translate(27px, 18px) rotate(0deg); } 40% { transform: translate(9px, -9px) rotate(1deg); } 50% { transform: translate(-9px, 18px) rotate(-1deg); } 60% { transform: translate(-27px, 9px) rotate(0deg); } 70% { transform: translate(27px, 9px) rotate(-1deg); } 80% { transform: translate(-9px, -9px) rotate(1deg); } 90% { transform: translate(9px, 18px) rotate(0deg); } 100% { transform: translate(9px, -18px) rotate(-1deg); } }
-        .cat-container { position: fixed; top: 30%; left: -200px; font-size: 150px; line-height: 1; z-index: 1600; pointer-events: none; animation: walk 12s linear forwards; }
-        @keyframes walk { 0% { left: -200px; transform: rotate(0deg); } 25% { transform: rotate(10deg); } 50% { transform: rotate(-10deg); } 75% { transform: rotate(10deg); } 100% { left: 100%; transform: rotate(0deg); } }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        #hidden-cat { position: fixed; bottom: 10px; right: 10px; width: 30px; height: 30px; opacity: 0.01; z-index: 999; cursor: pointer; }
         .screen-crack { position: absolute; width: 200px; height: 200px; pointer-events: none; z-index: 1500; opacity: 0.9; }
         
+        /* Overlays */
         .full-screen-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(62, 39, 35, 0.98); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 2000; color: white; padding: 30px; text-align: center; }
         .full-screen-overlay h2 { color: #FFCC80; margin-bottom: 20px; font-size: 32px; line-height: 1.2; }
         .full-screen-overlay p { color: #EFEBE9; font-size: 20px; margin-bottom: 30px; line-height: 1.5; }
@@ -169,7 +223,6 @@
         .naughty-list h4 { margin: 0 0 5px 0; font-size: 14px; color: #D32F2F; font-weight: 900; }
         .naughty-item { font-size: 12px; padding: 4px 0; border-bottom: 1px dashed #A1887F; line-height: 1.4; }
         .naughty-item strong { color: #3E2723; }
-        /* Final Code Display */
         #final-code-display { background-color: #3E2723; color: #FFD700; font-family: monospace; font-size: 60px; font-weight: 900; padding: 20px; border: 4px solid #FFD700; border-radius: 15px; margin-bottom: 30px; letter-spacing: 10px; text-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
         
         @media (max-width: 600px) {
@@ -231,8 +284,7 @@
         <h2>EXPEDITION COMPLETE!</h2>
         <p>The Core has been breached.</p>
         <div id="final-code-display">----</div>
-        <div id="summary-content">
-            </div>
+        <div id="summary-content"></div>
     </div>
 
     <div id="game-wrapper">
@@ -286,7 +338,7 @@
                 <h3>Tap Power</h3>
                 <div class="upgrades-grid">
                     <button class="upgrade-btn btn-active" id="purchase-power-click-button">
-                        <span class="btn-title" id="click-title">Pickaxe</span>
+                        <span class="btn-title" id="click-title">Pickaxe (Owned: 1)</span>
                         <div class="btn-details">
                             <span class="btn-bonus">+1 Click</span>
                             <span class="btn-cost">Cost: <span id="power-click-cost-display">25</span></span>
@@ -313,7 +365,7 @@
                 <h3>Passive Mass</h3>
                 <div class="upgrades-grid">
                     <button class="upgrade-btn btn-passive" id="purchase-helper-button">
-                        <span class="btn-title" id="helper-title">Geologist</span>
+                        <span class="btn-title" id="helper-title">Geologist (Owned: 0)</span>
                         <div class="btn-details">
                             <span class="btn-bonus">+1/sec</span>
                             <span class="btn-cost">Cost: <span id="helper-cost-display">15</span></span>
@@ -381,9 +433,6 @@
             meow: document.getElementById('meow-sound')
         };
 
-        let lastClickSoundTime = 0;
-        let canClick = true;
-
         function unlockAudio() {
             for (let key in sounds) {
                 if(sounds[key]) {
@@ -413,7 +462,6 @@
             nameInput: document.getElementById('name-input'),
             joinButton: document.getElementById('join-button'),
             
-            // BUTTONS
             purchaseHelperButton: document.getElementById('purchase-helper-button'),
             purchaseTntButton: document.getElementById('purchase-tnt-button'),
             purchaseDrillButton: document.getElementById('purchase-drill-button'),
@@ -433,7 +481,7 @@
             synergyCostDisplay: document.getElementById('synergy-cost-display'),
             sacrificeCostDisplay: document.getElementById('sacrifice-cost-display'),
             
-            // TITLES (For dynamic update)
+            // TITLES
             helperTitle: document.getElementById('helper-title'),
             tntTitle: document.getElementById('tnt-title'),
             drillTitle: document.getElementById('drill-title'),
@@ -445,7 +493,7 @@
             announcementBar: document.getElementById('announcement-bar'),
             codeBoxes: document.querySelectorAll('.code-box'),
             
-            // STATS Game Tab (WRAPPERS)
+            // STATS WRAPPERS
             statGeologist: document.getElementById('stat-geologist'),
             statTnt: document.getElementById('stat-tnt'),
             statDrill: document.getElementById('stat-drill'),
@@ -465,7 +513,6 @@
             hiddenCat: document.getElementById('hidden-cat'),
             tabNav: document.querySelector('.tab-nav'),
             pages: document.querySelectorAll('.page'),
-            
             tutorialOverlay: document.getElementById('tutorial-overlay'),
             inviteOverlay: document.getElementById('invite-overlay'),
             waitingOverlay: document.getElementById('waiting-overlay'),
@@ -486,7 +533,7 @@
             summaryContent: document.getElementById('summary-content'),
             finalCodeDisplay: document.getElementById('final-code-display'),
             
-            // BUTTON REFS for Visibility
+            // BUTTON REFS
             btnHelper: document.getElementById('purchase-helper-button'),
             btnTnt: document.getElementById('purchase-tnt-button'),
             btnDrill: document.getElementById('purchase-drill-button'),
@@ -548,6 +595,11 @@
             setTimeout(() => { particle.remove(); }, 1000);
         }
 
+        // HELPER: Update Button Titles
+        const updateBtnTitle = (el, title, count) => {
+            el.textContent = count > 0 ? `${title} (Owned: ${count})` : title;
+        };
+
         elements.joinButton.addEventListener('click', () => {
             const playerName = elements.nameInput.value.trim();
             if (playerName) {
@@ -563,7 +615,6 @@
             socket.emit('playerClick');
             if (isGremlined) jumpButton();
             
-            // Play sound (removed debounce for click feel)
             if (sounds.click) {
                 const clickClone = sounds.click.cloneNode();
                 clickClone.play().catch(() => {});
@@ -698,7 +749,6 @@
             
             elements.totalMassDisplay.textContent = Math.floor(totalScore).toLocaleString();
             elements.headerMultiplier.textContent = `${partyMultiplier}x`;
-            
             elements.sacrificeCostDisplay.textContent = sacrificeCost.toLocaleString();
             const myId = getPlayerId();
             
@@ -736,7 +786,7 @@
                 mySynergy = myServerState.synergyLevel || 0;
                 myPassiveIncome = (myServerState.helpers * 1) + ((myServerState.tnt || 0) * 10) + ((myServerState.drills || 0) * 50) + ((myServerState.excavators || 0) * 500);
                 
-                // FOG OF WAR VISIBILITY (Check Lifetime Mass)
+                // FOG OF WAR VISIBILITY
                 const lifetime = myServerState.totalEarnedMass || 0;
                 
                 if (lifetime < 250 * 0.66) elements.btnTnt.classList.add('hidden-upgrade'); else elements.btnTnt.classList.remove('hidden-upgrade');
@@ -746,18 +796,12 @@
                 if (lifetime < 15000 * 0.66) elements.btnExcavator.classList.add('hidden-upgrade'); else elements.btnExcavator.classList.remove('hidden-upgrade');
                 if (lifetime < 7500 * 0.66) elements.sacrificeButton.classList.add('hidden-upgrade'); else elements.sacrificeButton.classList.remove('hidden-upgrade');
 
-                // No Decimals in Display
                 const myScoreText = `My Mass: ${Math.floor(myServerState.score).toLocaleString()}`;
                 elements.myScoreDisplay.textContent = myScoreText;
                 elements.upgradesMassDisplay.textContent = Math.floor(myServerState.score).toLocaleString();
                 elements.passiveRateDisplay.textContent = `(+${Math.floor(myPassiveIncome * myMulti).toLocaleString()}/sec)`;
                 
-                // STAT VISIBILITY TOGGLING & VALUES
-                // Using helper function for clean titles
-                const updateBtnTitle = (el, title, count) => {
-                    el.textContent = count > 0 ? `${title} (Owned: ${count})` : title;
-                };
-
+                // STAT VISIBILITY & VALUES
                 elements.statGeologist.style.display = myServerState.helpers > 0 ? 'inline' : 'none';
                 elements.myHelpersDisplay.textContent = myServerState.helpers;
                 updateBtnTitle(elements.helperTitle, "Geologist", myServerState.helpers);
@@ -782,7 +826,6 @@
                 elements.mySynergyDisplay.textContent = `${myServerState.synergyLevel || 0}%`;
                 updateBtnTitle(elements.synergyTitle, "Middle Manager", myServerState.synergyLevel || 0);
                 
-                // Pickaxe always visible
                 elements.myClickPowerDisplay.textContent = myServerState.clickPower;
                 updateBtnTitle(elements.clickTitle, "Pickaxe", myServerState.clickPower);
 
