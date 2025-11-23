@@ -23,7 +23,9 @@ let isGameOver = false;
 
 // --- ECONOMY SETTINGS ---
 const HELPER_COST = 15;          
-const TNT_COST = 250;            
+const TNT_COST = 250; 
+// NEW: Intermediate active click upgrade
+const HAMMER_COST = 500;           
 const DRILL_COST = 1000;         
 const EXCAVATOR_COST = 15000;    
 const POWER_CLICK_COST = 25;     
@@ -36,13 +38,14 @@ const FLIP_COST = 500;
 const GREMLIN_COST = 750;
 const HIDDEN_CAT_BONUS = 1000;
 
-// UPDATED: Thresholds sorted by SCORE (low to high) for progress tracking.
-// Added 'position' to map to specific visual boxes (0 = 1st box, 3 = 4th box).
+// UPDATED: Thresholds sorted by SCORE (low to high).
+// Position maps to the visual box (0 = 1st box, 3 = 4th box).
+// I scaled these numbers up slightly for 10 players.
 const secretCodeThresholds = [
-  { score: 250000,   code: 'U', position: 1, revealed: false }, 
-  { score: 2500000,  code: 'D', position: 3, revealed: false }, 
-  { score: 15000000, code: 'R', position: 2, revealed: false },
-  { score: 50000000, code: 'T', position: 0, revealed: false } 
+  { score: 500000,    code: 'U', position: 1, revealed: false }, 
+  { score: 5000000,   code: 'D', position: 3, revealed: false }, 
+  { score: 30000000,  code: 'R', position: 2, revealed: false },
+  { score: 100000000, code: 'T', position: 0, revealed: false } 
 ];
 
 function broadcastGameState() {
@@ -79,7 +82,7 @@ io.on('connection', (socket) => {
   
   socket.emit('gameStateUpdate', { players, partyMultiplier, sacrificeCost, isGameUnlocked, isExpeditionStarted, isGameOver, nextGoal });
   
-  // UPDATED: Send explicit position on reconnect
+  // Send revealed code pieces to new/reconnecting players
   secretCodeThresholds.forEach((threshold) => {
     if (threshold.revealed) {
       socket.emit('unlockCodePiece', { code: threshold.code, position: threshold.position });
@@ -121,7 +124,8 @@ io.on('connection', (socket) => {
           
           // Costs
           nextHelperCost: HELPER_COST, 
-          nextTntCost: TNT_COST,       
+          nextTntCost: TNT_COST,
+          nextHammerCost: HAMMER_COST, // New Hammer Cost       
           nextDrillCost: DRILL_COST, 
           nextExcavatorCost: EXCAVATOR_COST, 
           nextPowerClickCost: POWER_CLICK_COST,
@@ -134,6 +138,7 @@ io.on('connection', (socket) => {
           totalDrills: 0,
           totalExcavators: 0,
           totalClickUpgrades: 0,
+          totalHammerUpgrades: 0, // New Hammer Tracking
           sacrifices: 0,
           attackCost: 0,
           foundSecret: false, 
@@ -170,7 +175,9 @@ io.on('connection', (socket) => {
     const player = getPlayer(socket.id);
     if (player && (isExpeditionStarted || !isGameUnlocked) && !isGameOver) {
         const passiveBase = (player.helpers + (player.tnt * 10) + (player.drills * 50) + (player.excavators * 500));
-        const synergyBonus = passiveBase * (player.synergyLevel * 0.01);
+        // UPDATED: Synergy is now 5% (0.05) instead of 1%
+        const synergyBonus = passiveBase * (player.synergyLevel * 0.05);
+        
         let hitValue = (player.clickPower + synergyBonus) * partyMultiplier;
         
         const effectiveCritChance = Math.min(50, player.critChance);
@@ -199,7 +206,6 @@ io.on('connection', (socket) => {
   const handleUpgrade = (socket, costProp, countProp, totalProp, scale) => {
       const player = getPlayer(socket.id);
       if (!player) return;
-      // Safety init
       if (!player[costProp]) player[costProp] = 100; 
       if (!player[countProp]) player[countProp] = 0;
       
@@ -223,6 +229,21 @@ io.on('connection', (socket) => {
   socket.on('purchasePowerClick', () => handleUpgrade(socket, 'nextPowerClickCost', 'clickPower', 'totalClickUpgrades', 1.15));
   socket.on('purchaseCrit', () => handleUpgrade(socket, 'nextCritCost', 'critChance', null, 1.30));
   socket.on('purchaseSynergy', () => handleUpgrade(socket, 'nextSynergyCost', 'synergyLevel', null, 1.50));
+  
+  // NEW HAMMER HANDLER
+  socket.on('purchaseHammer', () => {
+      const player = getPlayer(socket.id);
+      if (!player) return;
+      if (!player.nextHammerCost) player.nextHammerCost = HAMMER_COST;
+      
+      if (player.score >= player.nextHammerCost) {
+          player.score -= player.nextHammerCost;
+          player.clickPower += 10; // Adds +10 base power
+          player.totalHammerUpgrades = (player.totalHammerUpgrades || 0) + 1;
+          // Steeper cost scaling (1.5x) so they can't buy infinite hammers
+          player.nextHammerCost = Math.ceil(player.nextHammerCost * 1.5);
+      }
+  });
 
   // Attack Handlers
   socket.on('crackPlayer', (targetPlayerId) => {
@@ -320,6 +341,7 @@ io.on('connection', (socket) => {
       player.nextDrillCost = DRILL_COST;
       player.nextExcavatorCost = EXCAVATOR_COST;
       player.nextPowerClickCost = POWER_CLICK_COST;
+      player.nextHammerCost = HAMMER_COST; // Reset Hammer
       player.nextCritCost = CRIT_COST;
       player.nextSynergyCost = SYNERGY_COST;
       
@@ -354,14 +376,13 @@ setInterval(() => {
   secretCodeThresholds.forEach((threshold, index) => {
     if (totalScore >= threshold.score && !threshold.revealed) {
       threshold.revealed = true;
-      // UPDATED: Use explicit position instead of array index
       io.emit('unlockCodePiece', { code: threshold.code, position: threshold.position });
       
       // Check if this was the last threshold (based on score sorting)
       if (index === secretCodeThresholds.length - 1 && !isGameOver) {
           isGameOver = true;
           
-          // UPDATED: Sort by position so the final banner reads TURD, not UDRT
+          // Sort by position so the final banner reads TURD, not the order unlocked
           const fullCode = [...secretCodeThresholds]
             .sort((a, b) => a.position - b.position)
             .map(t => t.code)
