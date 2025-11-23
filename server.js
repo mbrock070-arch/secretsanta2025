@@ -37,19 +37,19 @@ const FLIP_COST = 500;
 const GREMLIN_COST = 750;
 const HIDDEN_CAT_BONUS = 50000; 
 
-// Goal: 250M -> 5B -> 25B -> 75B
+// UPDATED: User Defined Exponential Curve
+// 250k -> 25M -> 2.5B -> 100B
 const secretCodeThresholds = [
-  { score: 250000000,   code: 'U', position: 1, revealed: false }, 
-  { score: 5000000000,  code: 'D', position: 3, revealed: false }, 
-  { score: 25000000000, code: 'R', position: 2, revealed: false }, 
-  { score: 75000000000, code: 'T', position: 0, revealed: false }  
+  { score: 250000,        code: 'U', position: 1, revealed: false }, // 250k
+  { score: 25000000,      code: 'D', position: 3, revealed: false }, // 25 Million
+  { score: 2500000000,    code: 'R', position: 2, revealed: false }, // 2.5 Billion
+  { score: 100000000000,  code: 'T', position: 0, revealed: false }  // 100 Billion
 ];
 
 function broadcastGameState() {
   const nextThresholdObj = secretCodeThresholds.find(t => !t.revealed);
   const nextGoal = nextThresholdObj ? nextThresholdObj.score : 0;
 
-  // NEW: Send threshold info (without codes) so client can display goal numbers
   const thresholds = secretCodeThresholds.map(t => ({
       score: t.score,
       position: t.position,
@@ -64,7 +64,7 @@ function broadcastGameState() {
       isExpeditionStarted,
       isGameOver,
       nextGoal,
-      thresholds // Sending this to client
+      thresholds 
   };
   io.emit('gameStateUpdate', gameState);
 }
@@ -85,7 +85,6 @@ io.on('connection', (socket) => {
   const nextThresholdObj = secretCodeThresholds.find(t => !t.revealed);
   const nextGoal = nextThresholdObj ? nextThresholdObj.score : 0;
   
-  // NEW: Send thresholds on connect
   const thresholds = secretCodeThresholds.map(t => ({
       score: t.score,
       position: t.position,
