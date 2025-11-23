@@ -36,11 +36,13 @@ const FLIP_COST = 500;
 const GREMLIN_COST = 750;
 const HIDDEN_CAT_BONUS = 1000;
 
+// UPDATED: Thresholds sorted by SCORE (low to high) for progress tracking.
+// Added 'position' to map to specific visual boxes (0 = 1st box, 3 = 4th box).
 const secretCodeThresholds = [
-  { score: 500000,   code: '4', revealed: false }, 
-  { score: 5000000,  code: '2', revealed: false }, 
-  { score: 35000000, code: '8', revealed: false },
-  { score: 100000000, code: '1', revealed: false } 
+  { score: 250000,   code: 'U', position: 1, revealed: false }, 
+  { score: 2500000,  code: 'D', position: 3, revealed: false }, 
+  { score: 15000000, code: 'R', position: 2, revealed: false },
+  { score: 50000000, code: 'T', position: 0, revealed: false } 
 ];
 
 function broadcastGameState() {
@@ -77,9 +79,10 @@ io.on('connection', (socket) => {
   
   socket.emit('gameStateUpdate', { players, partyMultiplier, sacrificeCost, isGameUnlocked, isExpeditionStarted, isGameOver, nextGoal });
   
-  secretCodeThresholds.forEach((threshold, index) => {
+  // UPDATED: Send explicit position on reconnect
+  secretCodeThresholds.forEach((threshold) => {
     if (threshold.revealed) {
-      socket.emit('unlockCodePiece', { code: threshold.code, position: index });
+      socket.emit('unlockCodePiece', { code: threshold.code, position: threshold.position });
     }
   });
 
@@ -351,11 +354,19 @@ setInterval(() => {
   secretCodeThresholds.forEach((threshold, index) => {
     if (totalScore >= threshold.score && !threshold.revealed) {
       threshold.revealed = true;
-      io.emit('unlockCodePiece', { code: threshold.code, position: index });
+      // UPDATED: Use explicit position instead of array index
+      io.emit('unlockCodePiece', { code: threshold.code, position: threshold.position });
       
+      // Check if this was the last threshold (based on score sorting)
       if (index === secretCodeThresholds.length - 1 && !isGameOver) {
           isGameOver = true;
-          const fullCode = secretCodeThresholds.map(t => t.code).join('');
+          
+          // UPDATED: Sort by position so the final banner reads TURD, not UDRT
+          const fullCode = [...secretCodeThresholds]
+            .sort((a, b) => a.position - b.position)
+            .map(t => t.code)
+            .join('');
+            
           io.emit('gameOver', { players, fullCode });
           broadcastGameState();
       }
