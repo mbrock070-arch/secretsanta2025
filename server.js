@@ -15,7 +15,7 @@ app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'index.html')); }
 // --- Game State ---
 let players = {};
 let partyMultiplier = 1;
-let sacrificeCost = 7500;
+let sacrificeCost = 7500; 
 let socketIdToPlayerId = {};
 let isGameUnlocked = false; 
 let isExpeditionStarted = false;
@@ -24,33 +24,37 @@ let isGameOver = false;
 // --- ECONOMY SETTINGS ---
 const HELPER_COST = 15;          
 const TNT_COST = 250; 
-// NEW: Intermediate active click upgrade
 const HAMMER_COST = 500;           
 const DRILL_COST = 1000;         
 const EXCAVATOR_COST = 15000;    
 const POWER_CLICK_COST = 25;     
 const CRIT_COST = 500;           
-const SYNERGY_COST = 2500;       
+const SYNERGY_COST = 10000;       
 
 const CRACK_COST = 100;
 const CAT_COST = 250;
 const FLIP_COST = 500;
 const GREMLIN_COST = 750;
-const HIDDEN_CAT_BONUS = 1000;
+const HIDDEN_CAT_BONUS = 50000; 
 
-// UPDATED: Thresholds sorted by SCORE (low to high).
-// Position maps to the visual box (0 = 1st box, 3 = 4th box).
-// I scaled these numbers up slightly for 10 players.
+// Goal: 250M -> 5B -> 25B -> 75B
 const secretCodeThresholds = [
-  { score: 500000,    code: 'U', position: 1, revealed: false }, 
-  { score: 5000000,   code: 'D', position: 3, revealed: false }, 
-  { score: 30000000,  code: 'R', position: 2, revealed: false },
-  { score: 100000000, code: 'T', position: 0, revealed: false } 
+  { score: 250000000,   code: 'U', position: 1, revealed: false }, 
+  { score: 5000000000,  code: 'D', position: 3, revealed: false }, 
+  { score: 25000000000, code: 'R', position: 2, revealed: false }, 
+  { score: 75000000000, code: 'T', position: 0, revealed: false }  
 ];
 
 function broadcastGameState() {
   const nextThresholdObj = secretCodeThresholds.find(t => !t.revealed);
   const nextGoal = nextThresholdObj ? nextThresholdObj.score : 0;
+
+  // NEW: Send threshold info (without codes) so client can display goal numbers
+  const thresholds = secretCodeThresholds.map(t => ({
+      score: t.score,
+      position: t.position,
+      revealed: t.revealed
+  }));
 
   const gameState = { 
       players, 
@@ -59,7 +63,8 @@ function broadcastGameState() {
       isGameUnlocked, 
       isExpeditionStarted,
       isGameOver,
-      nextGoal 
+      nextGoal,
+      thresholds // Sending this to client
   };
   io.emit('gameStateUpdate', gameState);
 }
@@ -80,9 +85,15 @@ io.on('connection', (socket) => {
   const nextThresholdObj = secretCodeThresholds.find(t => !t.revealed);
   const nextGoal = nextThresholdObj ? nextThresholdObj.score : 0;
   
-  socket.emit('gameStateUpdate', { players, partyMultiplier, sacrificeCost, isGameUnlocked, isExpeditionStarted, isGameOver, nextGoal });
+  // NEW: Send thresholds on connect
+  const thresholds = secretCodeThresholds.map(t => ({
+      score: t.score,
+      position: t.position,
+      revealed: t.revealed
+  }));
+
+  socket.emit('gameStateUpdate', { players, partyMultiplier, sacrificeCost, isGameUnlocked, isExpeditionStarted, isGameOver, nextGoal, thresholds });
   
-  // Send revealed code pieces to new/reconnecting players
   secretCodeThresholds.forEach((threshold) => {
     if (threshold.revealed) {
       socket.emit('unlockCodePiece', { code: threshold.code, position: threshold.position });
@@ -111,34 +122,30 @@ io.on('connection', (socket) => {
           score: 0,
           totalEarnedMass: 0,
           
-          // Buildings
           helpers: 0, 
           tnt: 0,       
           drills: 0, 
           excavators: 0, 
           
-          // Active Stats
           clickPower: 1,
           critChance: 0, 
           synergyLevel: 0, 
           
-          // Costs
           nextHelperCost: HELPER_COST, 
           nextTntCost: TNT_COST,
-          nextHammerCost: HAMMER_COST, // New Hammer Cost       
+          nextHammerCost: HAMMER_COST,      
           nextDrillCost: DRILL_COST, 
           nextExcavatorCost: EXCAVATOR_COST, 
           nextPowerClickCost: POWER_CLICK_COST,
           nextCritCost: CRIT_COST,       
           nextSynergyCost: SYNERGY_COST, 
           
-          // Tracking
           totalHelpers: 0,
           totalTnt: 0,
           totalDrills: 0,
           totalExcavators: 0,
           totalClickUpgrades: 0,
-          totalHammerUpgrades: 0, // New Hammer Tracking
+          totalHammerUpgrades: 0, 
           sacrifices: 0,
           attackCost: 0,
           foundSecret: false, 
@@ -175,9 +182,7 @@ io.on('connection', (socket) => {
     const player = getPlayer(socket.id);
     if (player && (isExpeditionStarted || !isGameUnlocked) && !isGameOver) {
         const passiveBase = (player.helpers + (player.tnt * 10) + (player.drills * 50) + (player.excavators * 500));
-        // UPDATED: Synergy is now 5% (0.05) instead of 1%
         const synergyBonus = passiveBase * (player.synergyLevel * 0.05);
-        
         let hitValue = (player.clickPower + synergyBonus) * partyMultiplier;
         
         const effectiveCritChance = Math.min(50, player.critChance);
@@ -197,12 +202,11 @@ io.on('connection', (socket) => {
       player.foundSecret = true;
       player.score += HIDDEN_CAT_BONUS;
       player.totalEarnedMass += HIDDEN_CAT_BONUS;
-      io.emit('announcement', { text: `${player.name} reflected on themselves to find the hidden secret.`, duration: 5000, priority: 2 });
+      io.emit('announcement', { text: `${player.name} found a secret fossil stash! (+${HIDDEN_CAT_BONUS})`, duration: 5000, priority: 2 });
       broadcastGameState();
     }
   });
 
-  // Helper to handle purchases safely
   const handleUpgrade = (socket, costProp, countProp, totalProp, scale) => {
       const player = getPlayer(socket.id);
       if (!player) return;
@@ -230,7 +234,6 @@ io.on('connection', (socket) => {
   socket.on('purchaseCrit', () => handleUpgrade(socket, 'nextCritCost', 'critChance', null, 1.30));
   socket.on('purchaseSynergy', () => handleUpgrade(socket, 'nextSynergyCost', 'synergyLevel', null, 1.50));
   
-  // NEW HAMMER HANDLER
   socket.on('purchaseHammer', () => {
       const player = getPlayer(socket.id);
       if (!player) return;
@@ -238,23 +241,19 @@ io.on('connection', (socket) => {
       
       if (player.score >= player.nextHammerCost) {
           player.score -= player.nextHammerCost;
-          player.clickPower += 10; // Adds +10 base power
+          player.clickPower += 10; 
           player.totalHammerUpgrades = (player.totalHammerUpgrades || 0) + 1;
-          // Steeper cost scaling (1.5x) so they can't buy infinite hammers
           player.nextHammerCost = Math.ceil(player.nextHammerCost * 1.5);
       }
   });
 
-  // Attack Handlers
   socket.on('crackPlayer', (targetPlayerId) => {
     const attacker = getPlayer(socket.id);
     if (attacker && attacker.score >= CRACK_COST && socketIdToPlayerId[socket.id] !== targetPlayerId) {
       attacker.score -= CRACK_COST;
       attacker.attackCost = (attacker.attackCost || 0) + CRACK_COST;
-      
       const targetSocketId = Object.keys(socketIdToPlayerId).find(socketId => socketIdToPlayerId[socketId] === targetPlayerId);
       if (players[targetPlayerId]) recordAttack(socketIdToPlayerId[socket.id], players[targetPlayerId].name, 'cracks');
-      
       if (targetSocketId) {
         io.to(targetSocketId).emit('youGotCracked');
         io.emit('announcement', { text: `${attacker.name} smashed ${players[targetPlayerId].name}'s screen!`, duration: 30000, priority: 1 });
@@ -268,10 +267,8 @@ io.on('connection', (socket) => {
     if (flipper && flipper.score >= FLIP_COST && socketIdToPlayerId[socket.id] !== targetPlayerId) {
       flipper.score -= FLIP_COST;
       flipper.attackCost = (flipper.attackCost || 0) + FLIP_COST;
-      
       const targetSocketId = Object.keys(socketIdToPlayerId).find(socketId => socketIdToPlayerId[socketId] === targetPlayerId);
       if (players[targetPlayerId]) recordAttack(socketIdToPlayerId[socket.id], players[targetPlayerId].name, 'flips');
-      
       if (targetSocketId) {
         io.to(targetSocketId).emit('youGotFlipped');
         io.emit('announcement', { text: `${flipper.name} shifted the tectonic plates under ${players[targetPlayerId].name}!`, duration: 15000, priority: 1 });
@@ -285,10 +282,8 @@ io.on('connection', (socket) => {
     if (attacker && attacker.score >= GREMLIN_COST && socketIdToPlayerId[socket.id] !== targetPlayerId) {
       attacker.score -= GREMLIN_COST;
       attacker.attackCost = (attacker.attackCost || 0) + GREMLIN_COST;
-      
       const targetSocketId = Object.keys(socketIdToPlayerId).find(socketId => socketIdToPlayerId[socketId] === targetPlayerId);
       if (players[targetPlayerId]) recordAttack(socketIdToPlayerId[socket.id], players[targetPlayerId].name, 'gremlins');
-      
       if (targetSocketId) {
         io.to(targetSocketId).emit('youGotGremlined');
         io.emit('announcement', { text: `${attacker.name} opened a fissure under ${players[targetPlayerId].name}!`, duration: 30000, priority: 1 });
@@ -302,10 +297,8 @@ io.on('connection', (socket) => {
     if (purchaser && purchaser.score >= CAT_COST && socketIdToPlayerId[socket.id] !== targetPlayerId) {
       purchaser.score -= CAT_COST;
       purchaser.attackCost = (purchaser.attackCost || 0) + CAT_COST;
-      
       const targetSocketId = Object.keys(socketIdToPlayerId).find(socketId => socketIdToPlayerId[socketId] === targetPlayerId);
       if (players[targetPlayerId]) recordAttack(socketIdToPlayerId[socket.id], players[targetPlayerId].name, 'cats');
-      
       if (targetSocketId) {
         io.to(targetSocketId).emit('catAttack');
         io.emit('announcement', { text: `${purchaser.name} sent a wandering CAT to ${players[targetPlayerId].name}!`, duration: 10000, priority: 1 });
@@ -318,7 +311,7 @@ io.on('connection', (socket) => {
     const player = getPlayer(socket.id);
     if (player && player.score >= sacrificeCost) {
       partyMultiplier *= 2;
-      sacrificeCost *= 5;
+      sacrificeCost *= 5; // Costs 5x more each time
       player.sacrifices++;
       
       io.emit('earthquakeTriggered', { name: player.name, multiplier: partyMultiplier });
@@ -341,7 +334,7 @@ io.on('connection', (socket) => {
       player.nextDrillCost = DRILL_COST;
       player.nextExcavatorCost = EXCAVATOR_COST;
       player.nextPowerClickCost = POWER_CLICK_COST;
-      player.nextHammerCost = HAMMER_COST; // Reset Hammer
+      player.nextHammerCost = HAMMER_COST; 
       player.nextCritCost = CRIT_COST;
       player.nextSynergyCost = SYNERGY_COST;
       
@@ -364,7 +357,6 @@ setInterval(() => {
     const player = players[id];
     if (isExpeditionStarted && !isGameOver) {
         const gain = (player.helpers + (player.tnt * 10) + (player.drills * 50) + (player.excavators * 500)) * partyMultiplier;
-        
         if (!isNaN(gain)) {
             player.score += gain;
             player.totalEarnedMass += gain;
@@ -381,13 +373,10 @@ setInterval(() => {
       // Check if this was the last threshold (based on score sorting)
       if (index === secretCodeThresholds.length - 1 && !isGameOver) {
           isGameOver = true;
-          
-          // Sort by position so the final banner reads TURD, not the order unlocked
           const fullCode = [...secretCodeThresholds]
             .sort((a, b) => a.position - b.position)
             .map(t => t.code)
             .join('');
-            
           io.emit('gameOver', { players, fullCode });
           broadcastGameState();
       }

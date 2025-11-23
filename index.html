@@ -33,7 +33,6 @@
             cursor: pointer; padding: 0; margin: 0; box-shadow: none;
         }
 
-        /* FIXED: Added padding here so text isn't cut off */
         #global-stats-bar { display: flex; justify-content: space-between; width: 100%; max-width: 450px; font-size: 12px; color: var(--text-color); margin-bottom: 3px; padding: 0 10px; }
         #global-stats-bar span { font-weight: bold; }
 
@@ -111,6 +110,8 @@
         input { font-size: 18px; padding: 12px; border-radius: 8px; border: 2px solid var(--ui-dark); background-color: var(--ui-light); color: var(--text-color); width: 80%; max-width: 300px; margin-bottom: 10px; }
         #secret-code-container { margin-bottom: 10px; }
         #code-display { display: flex; gap: 8px; justify-content: center; }
+        .code-wrapper { display: flex; flex-direction: column; align-items: center; }
+        .code-goal { font-size: 10px; color: var(--accent-color); font-weight: bold; margin-top: 2px; }
         .code-box { width: 40px; height: 55px; border: 2px solid var(--text-color); display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 900; border-radius: 8px; background-color: #FFF8E1; color: var(--text-color); }
         .my-stats-display { display: flex; justify-content: center; gap: 10px; margin-top: 10px; font-size: 13px; padding: 10px; border: 2px dashed var(--ui-dark); border-radius: 12px; background-color: #D7CCC8; margin-bottom: 10px; font-weight: bold; width: 100%; flex-wrap: wrap; }
         
@@ -240,7 +241,10 @@
             <div id="secret-code-container" class="locked-feature">
                 <h3>Core Combination</h3>
                 <div id="code-display">
-                    <div class="code-box">?</div><div class="code-box">?</div><div class="code-box">?</div><div class="code-box">?</div>
+                    <div class="code-wrapper"><div class="code-box">?</div><div class="code-goal">-</div></div>
+                    <div class="code-wrapper"><div class="code-box">?</div><div class="code-goal">-</div></div>
+                    <div class="code-wrapper"><div class="code-box">?</div><div class="code-goal">-</div></div>
+                    <div class="code-wrapper"><div class="code-box">?</div><div class="code-goal">-</div></div>
                 </div>
             </div>
             <div id="party-progress-container" class="locked-feature">
@@ -313,7 +317,7 @@
                         <span class="btn-title" id="synergy-title">Middle Manager</span>
                         <div class="btn-details">
                             <span class="btn-bonus">5% mass/sec added</span>
-                            <span class="btn-cost">Cost: <span id="synergy-cost-display">2500</span></span>
+                            <span class="btn-cost">Cost: <span id="synergy-cost-display">10,000</span></span>
                         </div>
                     </button>
                 </div>
@@ -455,6 +459,7 @@
             
             announcementBar: document.getElementById('announcement-bar'),
             codeBoxes: document.querySelectorAll('.code-box'),
+            codeGoals: document.querySelectorAll('.code-goal'), // NEW
             
             // STATS Game Tab (WRAPPERS)
             statGeologist: document.getElementById('stat-geologist'),
@@ -525,6 +530,14 @@
         let mySynergy = 0;
         let myPassiveIncome = 0;
         let myCurrentScore = 0; 
+        
+        // NEW Helper to format Big Numbers (1k, 1M, 1B)
+        function formatMass(num) {
+            if (num >= 1000000000) return (num / 1000000000).toFixed(1) + 'B';
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+            return num.toString();
+        }
 
         function getPlayerId() {
             let playerId = localStorage.getItem('partyClickerPlayerId');
@@ -566,7 +579,6 @@
             setTimeout(() => { particle.remove(); }, 1000);
         }
 
-        // HELPER: Check Affordability and Gray Out Buttons
         function checkAffordability(cost, buttonElement) {
             if (myCurrentScore < cost) {
                 buttonElement.disabled = true;
@@ -579,12 +591,10 @@
             }
         }
         
-        // HELPER: Update Button Titles
         const updateBtnTitle = (el, title, count) => {
             el.textContent = count > 0 ? `${title} (Owned: ${count})` : title;
         };
 
-        // LISTENERS FOR REFRESH & RESET
         socket.on('forceRefresh', () => { window.location.reload(); });
         window.resetGameNow = function() { if(confirm("⚠️ ARE YOU SURE? This will wipe the server and kick everyone.")) { socket.emit('adminResetGame'); } }
 
@@ -603,7 +613,6 @@
             socket.emit('playerClick');
             if (isGremlined) jumpButton();
             
-            // 2 Second Throttle for Mining Sound
             const now = Date.now();
             if (now - lastClickSoundTime > 2000) {
                  if (sounds.click) {
@@ -621,7 +630,6 @@
                 y = rect.top + rect.height / 2;
             }
             
-            // SYNERGY UPDATE: 0.05
             const synergyBonus = myPassiveIncome * (mySynergy * 0.05);
             let val = (myClickPower + synergyBonus) * myMulti;
             
@@ -657,7 +665,6 @@
             elements.earthquakeOverlay.style.display = 'none';
         });
         
-        // HELP BUTTON LOGIC
         elements.helpBtn.addEventListener('click', () => {
             elements.helpOverlay.style.display = 'flex';
         });
@@ -672,10 +679,7 @@
         elements.purchaseDrillButton.addEventListener('click', () => { socket.emit('purchaseDrill'); if(sounds.buy) sounds.buy.play(); });
         elements.purchaseExcavatorButton.addEventListener('click', () => { socket.emit('purchaseExcavator'); if(sounds.buy) sounds.buy.play(); });
         elements.purchasePowerClickButton.addEventListener('click', () => { socket.emit('purchasePowerClick'); if(sounds.buy) sounds.buy.play(); });
-        
-        // NEW HAMMER LISTENER
         elements.purchaseHammerButton.addEventListener('click', () => { socket.emit('purchaseHammer'); if(sounds.buy) sounds.buy.play(); });
-        
         elements.purchaseCritButton.addEventListener('click', () => { socket.emit('purchaseCrit'); if(sounds.buy) sounds.buy.play(); });
         elements.purchaseSynergyButton.addEventListener('click', () => { socket.emit('purchaseSynergy'); if(sounds.buy) sounds.buy.play(); });
         elements.sacrificeButton.addEventListener('click', () => socket.emit('sacrificeForParty')); 
@@ -692,8 +696,6 @@
 
             if (event.target.classList.contains('action-button')) { 
                 const targetPlayerId = event.target.dataset.playerId; 
-                
-                // HARDCODED COSTS FOR CLIENT CHECK
                 let cost = 0;
                 if (event.target.classList.contains('crack-button')) cost = 100;
                 else if (event.target.classList.contains('cat-button')) cost = 250;
@@ -705,7 +707,7 @@
                     else if (event.target.classList.contains('flip-button')) socket.emit('flipPlayer', targetPlayerId); 
                     else if (event.target.classList.contains('gremlin-button')) socket.emit('gremlinPlayer', targetPlayerId);
                     else if (event.target.classList.contains('cat-button')) socket.emit('sendCat', targetPlayerId);
-                    if(sounds.buy) sounds.buy.play(); // Feedback sound
+                    if(sounds.buy) sounds.buy.play(); 
                 }
             } 
         });
@@ -730,7 +732,7 @@
                 unlockFullGame();
             }
 
-            const { players, partyMultiplier, sacrificeCost, nextGoal } = state;
+            const { players, partyMultiplier, sacrificeCost, nextGoal, thresholds } = state;
             
             myMulti = partyMultiplier;
 
@@ -738,9 +740,27 @@
             let percentage = 0;
             if (nextGoal > 0) percentage = Math.min(100, (totalScore / nextGoal) * 100);
             else percentage = 100;
-            elements.progressBarFill.style.width = `${percentage}%`;
-            elements.progressText.textContent = `${Math.floor(percentage)}%`;
             
+            elements.progressBarFill.style.width = `${percentage}%`;
+            
+            // UPDATED: Progress Text with readable numbers
+            elements.progressText.textContent = `${formatMass(totalScore)} / ${formatMass(nextGoal)} (${Math.floor(percentage)}%)`;
+            
+            // UPDATED: Render Code Box Goals
+            if (thresholds && thresholds.length) {
+                thresholds.forEach(t => {
+                    // t.position corresponds to visual box index (0,1,2,3)
+                    if (elements.codeGoals[t.position]) {
+                        elements.codeGoals[t.position].textContent = formatMass(t.score);
+                        // If revealed, dim the goal text to indicate completion
+                        if (t.revealed) {
+                            elements.codeGoals[t.position].style.opacity = '0.3';
+                            elements.codeGoals[t.position].textContent = "✓";
+                        }
+                    }
+                });
+            }
+
             const btn = elements.clickerButton;
             btn.className = ''; 
             if (percentage > 33) btn.classList.add('stage-2');
@@ -799,23 +819,21 @@
             });
             const myServerState = players[myId];
             if (myServerState) {
-                myCurrentScore = myServerState.score; // Critical for checkAffordability
+                myCurrentScore = myServerState.score; 
                 myClickPower = myServerState.clickPower;
                 myCritChance = myServerState.critChance || 0;
                 mySynergy = myServerState.synergyLevel || 0;
                 myPassiveIncome = (myServerState.helpers * 1) + ((myServerState.tnt || 0) * 10) + ((myServerState.drills || 0) * 50) + ((myServerState.excavators || 0) * 500);
                 
-                // FOG OF WAR VISIBILITY
                 const lifetime = myServerState.totalEarnedMass || 0;
                 
                 const updateVisibilityAndStats = (cost, btn, countDisplay, statEl, count) => {
                     if (lifetime < cost * 0.66) btn.classList.add('hidden-upgrade'); 
                     else btn.classList.remove('hidden-upgrade');
-                    checkAffordability(cost, btn); // Visually disable if broke
+                    checkAffordability(cost, btn); 
                     if(statEl) statEl.style.display = (count || 0) > 0 ? 'inline' : 'none';
                 };
 
-                // Manual updates using helper
                 updateVisibilityAndStats(myServerState.nextHelperCost, elements.btnHelper, null, elements.statGeologist, myServerState.helpers);
                 updateBtnTitle(elements.helperTitle, "Geologist", myServerState.helpers);
                 
@@ -834,27 +852,22 @@
                 updateVisibilityAndStats(myServerState.nextSynergyCost, elements.btnSynergy, null, elements.statSynergy, myServerState.synergyLevel);
                 updateBtnTitle(elements.synergyTitle, "Middle Manager", myServerState.synergyLevel || 0);
                 
-                // Pickaxe always visible
                 checkAffordability(myServerState.nextPowerClickCost, elements.btnClick);
                 updateBtnTitle(elements.clickTitle, "Pickaxe", myServerState.clickPower);
                 
-                // HAMMER LOGIC (NEW)
-                // Unlock later (300 mass) so it doesn't clutter early game
                 if (lifetime < 300) elements.btnHammer.classList.add('hidden-upgrade'); 
                 else elements.btnHammer.classList.remove('hidden-upgrade');
                 checkAffordability(myServerState.nextHammerCost || 500, elements.btnHammer);
                 elements.hammerCostDisplay.textContent = (myServerState.nextHammerCost || 500).toLocaleString();
                 updateBtnTitle(elements.hammerTitle, "Pneumatic", myServerState.totalHammerUpgrades || 0);
                 
-                // Sacrifice
                 if (lifetime < 7500 * 0.66) elements.sacrificeButton.classList.add('hidden-upgrade'); 
                 else elements.sacrificeButton.classList.remove('hidden-upgrade');
                 checkAffordability(sacrificeCost, elements.sacrificeButton);
                 
-                // Update Prank Buttons (Check Affordability only)
                 const prankButtons = document.querySelectorAll('.leaderboard-actions .action-button');
                 prankButtons.forEach(btn => {
-                    let cost = 100; // Default crack
+                    let cost = 100;
                     if (btn.classList.contains('cat-button')) cost = 250;
                     else if (btn.classList.contains('flip-button')) cost = 500;
                     else if (btn.classList.contains('gremlin-button')) cost = 750;
@@ -866,23 +879,21 @@
                 elements.upgradesMassDisplay.textContent = Math.floor(myServerState.score).toLocaleString();
                 elements.passiveRateDisplay.textContent = `(+${Math.floor(myPassiveIncome * myMulti).toLocaleString()}/sec)`;
                 
-                // STAT VALUES
                 elements.myHelpersDisplay.textContent = myServerState.helpers;
                 elements.myTntDisplay.textContent = myServerState.tnt || 0;
                 elements.myDrillsDisplay.textContent = myServerState.drills || 0;
                 elements.myExcavatorsDisplay.textContent = myServerState.excavators || 0;
                 elements.myClickPowerDisplay.textContent = myServerState.clickPower;
                 elements.myCritDisplay.textContent = `${myServerState.critChance || 0}%`;
-                elements.mySynergyDisplay.textContent = `${(myServerState.synergyLevel || 0) * 5}%`; // Updated visual to match 5%
+                elements.mySynergyDisplay.textContent = `${(myServerState.synergyLevel || 0) * 5}%`; 
 
-                // COSTS
                 elements.helperCostDisplay.textContent = myServerState.nextHelperCost.toLocaleString();
                 elements.tntCostDisplay.textContent = (myServerState.nextTntCost || 250).toLocaleString();
                 elements.drillCostDisplay.textContent = (myServerState.nextDrillCost || 1000).toLocaleString();
                 elements.excavatorCostDisplay.textContent = (myServerState.nextExcavatorCost || 15000).toLocaleString();
                 elements.powerClickCostDisplay.textContent = myServerState.nextPowerClickCost.toLocaleString();
                 elements.critCostDisplay.textContent = (myServerState.nextCritCost || 500).toLocaleString();
-                elements.synergyCostDisplay.textContent = (myServerState.nextSynergyCost || 2500).toLocaleString();
+                elements.synergyCostDisplay.textContent = (myServerState.nextSynergyCost || 10000).toLocaleString();
             }
         });
         
