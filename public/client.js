@@ -14,6 +14,16 @@ const sounds = {
 let lastClickSoundTime = 0;
 let canClick = true;
 
+// --- STATE VARIABLES ---
+let isGremlined = false;
+let tutorialClicks = 0;
+let gameIsUnlocked = false; // Local state tracking
+let hasJoined = false;
+let isHost = false;
+let totalPlayers = 1;
+let myCurrentScore = 0;
+
+// Audio Unlock
 function unlockAudio() {
     for (let key in sounds) {
         if(sounds[key]) {
@@ -79,7 +89,7 @@ const elements = {
     codeBoxes: document.querySelectorAll('.code-box'),
     codeGoals: document.querySelectorAll('.code-goal'), 
     
-    // STATS Game Tab (WRAPPERS)
+    // STATS Game Tab
     statGeologist: document.getElementById('stat-geologist'),
     statTnt: document.getElementById('stat-tnt'),
     statDrill: document.getElementById('stat-drill'),
@@ -100,13 +110,12 @@ const elements = {
     tabNav: document.querySelector('.tab-nav'),
     pages: document.querySelectorAll('.page'),
     
+    // OVERLAYS & BUTTONS
     tutorialOverlay: document.getElementById('tutorial-overlay'),
     inviteOverlay: document.getElementById('invite-overlay'),
     waitingOverlay: document.getElementById('waiting-overlay'),
     startPartyButton: document.getElementById('start-party-button'),
     letsDigButton: document.getElementById('lets-dig-button'),
-    gameTitle: document.getElementById('game-title'),
-    rockText: document.getElementById('rock-text'),
     lockedFeatures: document.querySelectorAll('.locked-feature'),
     lobbyList: document.getElementById('lobby-list'),
     lobbyCount: document.getElementById('lobby-count'),
@@ -120,13 +129,12 @@ const elements = {
     summaryContent: document.getElementById('summary-content'),
     finalCodeDisplay: document.getElementById('final-code-display'),
     
-    // CONFIRMATION & DISCONNECT REFS
     confirmStartOverlay: document.getElementById('confirm-start-overlay'),
     confirmStartBtn: document.getElementById('confirm-start-btn'),
     cancelStartBtn: document.getElementById('cancel-start-btn'),
     disconnectOverlay: document.getElementById('disconnect-overlay'),
     
-    // BUTTON REFS (For convenience)
+    // BTN REFS
     btnHelper: document.getElementById('purchase-helper-button'),
     btnTnt: document.getElementById('purchase-tnt-button'),
     btnDrill: document.getElementById('purchase-drill-button'),
@@ -142,20 +150,6 @@ const elements = {
     helpCloseBtn: document.getElementById('help-close-btn')
 };
 
-let isGremlined = false;
-let tutorialClicks = 0;
-let gameIsUnlocked = false;
-let hasJoined = false;
-let isHost = false;
-let totalPlayers = 1;
-let myClickPower = 1; 
-let myMulti = 1; 
-let myCritChance = 0;
-let mySynergy = 0;
-let myPassiveIncome = 0;
-let myCurrentScore = 0; 
-
-// Helper to format Big Numbers (1k, 1M, 1B)
 function formatMass(num) {
     if (num >= 1000000000) return (num / 1000000000).toFixed(1) + 'B';
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
@@ -174,12 +168,12 @@ function getPlayerId() {
 
 function unlockFullGame() {
     gameIsUnlocked = true;
+    elements.tutorialOverlay.style.display = 'none'; // Force hide tutorial
     elements.lockedFeatures.forEach(el => el.classList.remove('locked-feature'));
     elements.rockText.textContent = "MINE ROCK!";
 }
 
 function updateStartButton() {
-    // REQUIRE 2 PLAYERS
     if (totalPlayers >= 2) {
         elements.letsDigButton.disabled = false;
         elements.letsDigButton.innerHTML = `LAUNCH EXPEDITION! 🚀<br><span style="font-size:12px">(All ${totalPlayers} Geologists Ready)</span>`;
@@ -221,14 +215,10 @@ const updateBtnTitle = (el, title, count) => {
     el.textContent = count > 0 ? `${title} (Owned: ${count})` : title;
 };
 
-// --- LISTENERS ---
+// --- SOCKET EVENTS ---
 
-socket.on('disconnect', () => {
-    elements.disconnectOverlay.style.display = 'flex';
-});
-socket.on('connect_error', () => {
-    elements.disconnectOverlay.style.display = 'flex';
-});
+socket.on('disconnect', () => { elements.disconnectOverlay.style.display = 'flex'; });
+socket.on('connect_error', () => { elements.disconnectOverlay.style.display = 'flex'; });
 
 socket.on('forceRefresh', () => { window.location.reload(); });
 window.resetGameNow = function() { if(confirm("⚠️ ARE YOU SURE? This will wipe the server and kick everyone.")) { socket.emit('adminResetGame'); } }
@@ -265,16 +255,9 @@ elements.clickerButton.addEventListener('click', (e) => {
         y = rect.top + rect.height / 2;
     }
     
-    const synergyBonus = myPassiveIncome * (mySynergy * 0.02);
-    let val = (myClickPower + synergyBonus) * myMulti;
-    
-    let isCrit = false;
-    if (Math.random() * 100 < myCritChance) {
-        val *= 10; 
-        isCrit = true;
-    }
-    
-    createParticle(x, y, val, isCrit);
+    // Purely visual calculation for particle
+    let val = 1; 
+    createParticle(x, y, val, false);
 
     if (!gameIsUnlocked) {
         tutorialClicks++;
@@ -291,32 +274,16 @@ elements.startPartyButton.addEventListener('click', () => {
     updateStartButton();
 });
 
-// CONFIRMATION DIALOG
-elements.letsDigButton.addEventListener('click', () => {
-    elements.confirmStartOverlay.style.display = 'flex';
-});
-
+elements.letsDigButton.addEventListener('click', () => { elements.confirmStartOverlay.style.display = 'flex'; });
 elements.confirmStartBtn.addEventListener('click', () => {
     socket.emit('startExpedition');
     elements.confirmStartOverlay.style.display = 'none';
     elements.inviteOverlay.style.display = 'none';
 });
-
-elements.cancelStartBtn.addEventListener('click', () => {
-    elements.confirmStartOverlay.style.display = 'none';
-});
-
-elements.earthquakeCloseBtn.addEventListener('click', () => {
-    elements.earthquakeOverlay.style.display = 'none';
-});
-
-elements.helpBtn.addEventListener('click', () => {
-    elements.helpOverlay.style.display = 'flex';
-});
-elements.helpCloseBtn.addEventListener('click', () => {
-    elements.helpOverlay.style.display = 'none';
-});
-
+elements.cancelStartBtn.addEventListener('click', () => { elements.confirmStartOverlay.style.display = 'none'; });
+elements.earthquakeCloseBtn.addEventListener('click', () => { elements.earthquakeOverlay.style.display = 'none'; });
+elements.helpBtn.addEventListener('click', () => { elements.helpOverlay.style.display = 'flex'; });
+elements.helpCloseBtn.addEventListener('click', () => { elements.helpOverlay.style.display = 'none'; });
 elements.tabNav.addEventListener('click', (event) => { const button = event.target.closest('.tab-button'); if (button) { const pageId = button.dataset.page; elements.pages.forEach(page => page.classList.toggle('active', page.id === pageId)); elements.tabNav.querySelectorAll('.tab-button').forEach(btn => btn.classList.toggle('active', btn.dataset.page === pageId)); } });
 
 elements.purchaseHelperButton.addEventListener('click', () => { socket.emit('purchaseHelper'); if(sounds.buy) sounds.buy.play(); });
@@ -328,7 +295,6 @@ elements.purchaseHammerButton.addEventListener('click', () => { socket.emit('pur
 elements.purchaseCritButton.addEventListener('click', () => { socket.emit('purchaseCrit'); if(sounds.buy) sounds.buy.play(); });
 elements.purchaseSynergyButton.addEventListener('click', () => { socket.emit('purchaseSynergy'); if(sounds.buy) sounds.buy.play(); });
 elements.sacrificeButton.addEventListener('click', () => socket.emit('sacrificeForParty')); 
-
 elements.hiddenCat.addEventListener('click', () => { socket.emit('foundHiddenCat'); elements.hiddenCat.style.display = 'none'; });
 
 elements.leaderboard.addEventListener('click', (event) => { 
@@ -338,7 +304,6 @@ elements.leaderboard.addEventListener('click', (event) => {
         event.target.style.cursor = 'default';
         event.target.style.textDecoration = 'none';
     }
-
     if (event.target.classList.contains('action-button')) { 
         const targetPlayerId = event.target.dataset.playerId; 
         let cost = 0;
@@ -346,7 +311,6 @@ elements.leaderboard.addEventListener('click', (event) => {
         else if (event.target.classList.contains('cat-button')) cost = 250;
         else if (event.target.classList.contains('flip-button')) cost = 500;
         else if (event.target.classList.contains('gremlin-button')) cost = 750;
-
         if (myCurrentScore >= cost) {
             if (event.target.classList.contains('poke-button')) socket.emit('crackPlayer', targetPlayerId); 
             else if (event.target.classList.contains('flip-button')) socket.emit('flipPlayer', targetPlayerId); 
@@ -357,9 +321,13 @@ elements.leaderboard.addEventListener('click', (event) => {
     } 
 });
 
-// --- SOCKET EVENTS ---
+// --- STATE UPDATES ---
 
 socket.on('gameStateUpdate', (state) => {
+    // SYNC LOCAL VARIABLE
+    gameIsUnlocked = state.isGameUnlocked;
+
+    // 1. Handle "Caught in Limbo" State (Server Unlocked, Client Just Joined)
     if (state.isGameUnlocked && !state.isExpeditionStarted) {
         if (hasJoined) {
             if (isHost) {
@@ -369,7 +337,7 @@ socket.on('gameStateUpdate', (state) => {
                 elements.inviteOverlay.style.display = 'none';
                 elements.waitingOverlay.style.display = 'flex';
             }
-            unlockFullGame();
+            unlockFullGame(); // Forces tutorial overlay to hide
         }
     }
     
@@ -380,7 +348,6 @@ socket.on('gameStateUpdate', (state) => {
     }
 
     const { players, partyMultiplier, sacrificeCost, nextGoal, thresholds } = state;
-    
     myMulti = partyMultiplier;
 
     const totalScore = Object.values(players).reduce((sum, player) => sum + player.score, 0);
@@ -447,12 +414,10 @@ socket.on('gameStateUpdate', (state) => {
                 </div>
             `;
         }
-        
         let nameHTML = `<span>${player.name}</span>`;
         if (playerEntryId === myId && !player.foundSecret) { 
             nameHTML = `<span class="my-entry-name" title="Is there a secret here?">${player.name}</span>`;
         }
-
         entry.innerHTML = `
             <div class="leaderboard-info">${nameHTML} <span>${Math.floor(player.score).toLocaleString()}</span></div>
             ${actionsHTML}
@@ -496,12 +461,13 @@ socket.on('gameStateUpdate', (state) => {
         updateBtnTitle(elements.synergyTitle, "Middle Manager", myServerState.synergyLevel || 0);
         
         checkAffordability(myServerState.nextPowerClickCost, elements.btnClick);
-        updateBtnTitle(elements.clickTitle, "Pickaxe", myServerState.clickPower);
+        // FIXED: Use totalClickUpgrades so it doesn't reset visually to 1 on earthquake
+        updateBtnTitle(elements.clickTitle, "Pickaxe", myServerState.totalClickUpgrades || 0);
         
         if (lifetime < 300) elements.btnHammer.classList.add('hidden-upgrade'); 
         else elements.btnHammer.classList.remove('hidden-upgrade');
         checkAffordability(myServerState.nextHammerCost || 500, elements.btnHammer);
-        elements.hammerCostDisplay.textContent = (myServerState.nextHammerCost || 500).toLocaleString();
+        // FIXED: Use totalHammerUpgrades
         updateBtnTitle(elements.hammerTitle, "Pneumatic", myServerState.totalHammerUpgrades || 0);
         
         if (lifetime < 7500 * 0.66) elements.sacrificeButton.classList.add('hidden-upgrade'); 
@@ -571,7 +537,6 @@ socket.on('gameOver', (data) => {
     
     const playerArray = Object.values(players);
     
-    // AWARDS CALCULATIONS
     const maxMass = Math.max(...playerArray.map(p => p.totalEarnedMass));
     const minMass = Math.min(...playerArray.map(p => p.totalEarnedMass));
     const maxQuakes = Math.max(...playerArray.map(p => p.sacrifices));
@@ -585,7 +550,6 @@ socket.on('gameOver', (data) => {
         if(p.history) { for (let k in p.history) cats += p.history[k].cats; }
         return cats;
     }));
-    
     const getPassiveCount = (p) => (p.totalHelpers || 0) + (p.totalTnt || 0) + (p.totalDrills || 0) + (p.totalExcavators || 0);
     const maxPassive = Math.max(...playerArray.map(p => getPassiveCount(p)));
 
@@ -598,18 +562,13 @@ socket.on('gameOver', (data) => {
         
         if (player.totalEarnedMass === maxMass) badges += ' 🏆 MVP';
         else if (player.totalEarnedMass === minMass) badges += ' 🦠 The Leech';
-        
         if (player.sacrifices > 0 && player.sacrifices === maxQuakes) badges += ' 🌋 Hero';
-        
         if ((player.attackCost || 0) === maxAttack && maxAttack > 0) badges += ' 😈 The Menace';
         if ((player.attackCost || 0) === 0) badges += ' 😇 The Saint';
-        
         if ((player.totalClicks || 0) === maxClicks) badges += ' 👆 Finger Blaster';
         if ((player.totalClicks || 0) === minClicks && player.totalClicks > 0) badges += ' 😴 Sleeping Beauty';
-        
         if (player.synergyLevel === maxSynergy && maxSynergy > 0) badges += ' 📈 Middle Manager';
         if (getPassiveCount(player) === maxPassive && maxPassive > 0) badges += ' 🏗️ The Investor';
-        
         let playerCats = 0;
         if(player.history) { for (let k in player.history) playerCats += player.history[k].cats; }
         if (playerCats === maxCats && maxCats > 0) badges += ' 🐈 Cat Lady';
@@ -641,7 +600,6 @@ socket.on('gameOver', (data) => {
             <div class="summary-stat"><span>Drills:</span> <strong>${player.totalDrills || 0}</strong></div>
             <div class="summary-stat"><span>Excavators:</span> <strong>${player.totalExcavators || 0}</strong></div>
             <div class="summary-stat"><span>Pickaxe Upgrades:</span> <strong>${player.totalClickUpgrades || 0}</strong></div>
-            
             <div class="summary-stat" style="border-top: 1px solid #ccc; margin-top: 5px; padding-top: 5px;"><span>Earthquakes:</span> <strong>${player.sacrifices || 0}</strong></div>
             <div class="summary-stat" style="color:#D32F2F;">
                 <span>Total Mass Wasted on Pranks:</span> <strong>${(player.attackCost || 0).toLocaleString()}</strong>
@@ -701,25 +659,4 @@ socket.on('catAttack', () => {
     if(sounds.meow) sounds.meow.play();
     setTimeout(() => { catElement.remove(); }, 12500);
 });
-
-function jumpButton() { 
-    const container = elements.shakeWrapper; 
-    const button = elements.clickerButton; 
-    const containerWidth = container.offsetWidth; 
-    const buttonWidth = button.offsetWidth; 
-    const containerHeight = container.offsetHeight; 
-    const buttonHeight = button.offsetHeight; 
-    
-    const padding = 40;
-    const maxX = (containerWidth - buttonWidth) / 2 - padding; 
-    const maxY = (containerHeight - buttonHeight) / 2 - padding; 
-    
-    const safeMaxX = Math.max(0, maxX);
-    const safeMaxY = Math.max(0, maxY);
-
-    const randomLeftOffset = (Math.random() * 2 - 1) * safeMaxX; 
-    const randomTopOffset = (Math.random() * 2 - 1) * safeMaxY; 
-    
-    button.style.left = `${randomLeftOffset}px`; 
-    button.style.top = `${randomTopOffset}px`; 
-}
+function jumpButton() { const container = elements.shakeWrapper; const button = elements.clickerButton; const containerWidth = container.offsetWidth; const buttonWidth = button.offsetWidth; const containerHeight = container.offsetHeight; const buttonHeight = button.offsetHeight; const maxX = (containerWidth - buttonWidth) / 2; const maxY = (containerHeight - buttonHeight) / 2; const randomLeftOffset = (Math.random() * 2 - 1) * maxX; const randomTopOffset = (Math.random() * 2 - 1) * maxY; button.style.left = `${randomLeftOffset}px`; button.style.top = `${randomTopOffset}px`; }
