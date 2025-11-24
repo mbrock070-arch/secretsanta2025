@@ -29,7 +29,6 @@ const DRILL_COST = 1000;
 const EXCAVATOR_COST = 15000;    
 const POWER_CLICK_COST = 25;     
 const CRIT_COST = 500;
-// NEW: Crit Multiplier Upgrade Cost
 const CRIT_MULTI_COST = 2000; 
 const SYNERGY_COST = 10000;       
 
@@ -39,13 +38,12 @@ const FLIP_COST = 500;
 const GREMLIN_COST = 750;
 const HIDDEN_CAT_BONUS = 50000; 
 
-// UPDATED: User Defined Exponential Curve
-// 250k -> 25M -> 2.5B -> 250B
+// UPDATED: 25 Billion Final Goal
 const secretCodeThresholds = [
   { score: 250000,        code: 'U', position: 1, revealed: false }, // 250k
   { score: 25000000,      code: 'D', position: 3, revealed: false }, // 25 Million
   { score: 2500000000,    code: 'R', position: 2, revealed: false }, // 2.5 Billion
-  { score: 250000000000,  code: 'T', position: 0, revealed: false }  // 250 Billion
+  { score: 25000000000,   code: 'T', position: 0, revealed: false }  // 25 Billion
 ];
 
 function broadcastGameState() {
@@ -202,7 +200,6 @@ io.on('connection', (socket) => {
         const isCrit = (Math.random() * 100) < effectiveCritChance;
         
         if (isCrit) {
-            // UPDATED: Use dynamic crit multiplier
             hitValue *= (player.critMultiplier || 10); 
         }
 
@@ -251,7 +248,6 @@ io.on('connection', (socket) => {
   socket.on('purchaseCrit', () => handleUpgrade(socket, 'nextCritCost', 'critChance', null, 1.30));
   socket.on('purchaseSynergy', () => handleUpgrade(socket, 'nextSynergyCost', 'synergyLevel', null, 1.50));
   
-  // NEW: Purchase Crit Multiplier
   socket.on('purchaseCritMulti', () => {
       const player = getPlayer(socket.id);
       if (!player) return;
@@ -260,7 +256,7 @@ io.on('connection', (socket) => {
 
       if (player.score >= player.nextCritMultiCost) {
           player.score -= player.nextCritMultiCost;
-          player.critMultiplier += 1; // Adds +1x to the multiplier
+          player.critMultiplier += 1; 
           player.nextCritMultiCost = Math.ceil(player.nextCritMultiCost * 1.5);
       }
   });
@@ -342,14 +338,14 @@ io.on('connection', (socket) => {
     const player = getPlayer(socket.id);
     if (player && player.score >= sacrificeCost) {
       
-      // UPDATED: Testing Value 20x
-      partyMultiplier += 20;
+      // UPDATED: Exponential (Multiplicative 2x)
+      partyMultiplier *= 2;
       
       sacrificeCost *= 5; // Costs 5x more each time
       player.sacrifices++;
       
       io.emit('earthquakeTriggered', { name: player.name, multiplier: partyMultiplier });
-      io.emit('announcement', { text: `${player.name} triggered an EARTHQUAKE! (+2000% Power)`, duration: 5000, priority: 3 });
+      io.emit('announcement', { text: `${player.name} triggered an EARTHQUAKE! (Score Doubled!)`, duration: 5000, priority: 3 });
       
       player.score = 0;
       // Reset Buildings
@@ -406,7 +402,6 @@ setInterval(() => {
       threshold.revealed = true;
       io.emit('unlockCodePiece', { code: threshold.code, position: threshold.position });
       
-      // Check if this was the last threshold (based on score sorting)
       if (index === secretCodeThresholds.length - 1 && !isGameOver) {
           isGameOver = true;
           const fullCode = [...secretCodeThresholds]

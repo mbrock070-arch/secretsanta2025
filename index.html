@@ -159,7 +159,7 @@
         /* Final Code Display */
         #final-code-display { background-color: #3E2723; color: #FFD700; font-family: monospace; font-size: 60px; font-weight: 900; padding: 20px; border: 4px solid #FFD700; border-radius: 15px; margin-bottom: 30px; letter-spacing: 10px; text-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
         
-        #disconnect-overlay { z-index: 4000; background-color: rgba(255, 0, 0, 0.95); }
+        #disconnect-overlay { z-index: 4000; background-color: rgba(255, 0, 0, 0.95); display: none; }
         #disconnect-overlay h2 { color: white; }
         
         @media (max-width: 600px) {
@@ -250,7 +250,7 @@
         <button id="earthquake-close-btn">✕</button>
         <h2>EARTHQUAKE!</h2>
         <p><span id="earthquake-user" class="sacrificer-name">Unknown</span> triggered a massive tremor!</p>
-        <p>They sacrificed everything to BOOST production! (Current Mult: <span id="earthquake-multiplier" style="font-weight:bold;">1x</span>)</p>
+        <p>Increased Multiplier to <span id="earthquake-multiplier" style="font-weight:bold;">1x</span> for the rest of the game!</p>
     </div>
     
     <div id="summary-overlay" class="full-screen-overlay" style="display: none;">
@@ -313,7 +313,7 @@
                     My Mass: <span id="upgrades-mass-display">0</span>
                 </div>
                 
-                <button id="sacrifice-button" class="hidden-upgrade">Trigger Earthquake! (+20x Multiplier) (Cost: <span id="sacrifice-cost-display">7,500</span>)</button>
+                <button id="sacrifice-button" class="hidden-upgrade">Trigger Earthquake! (Multiplies Score x2!) (Cost: <span id="sacrifice-cost-display">7,500</span>)</button>
                 
                 <h3>Tap Power</h3>
                 <div class="upgrades-grid">
@@ -643,7 +643,11 @@
             el.textContent = count > 0 ? `${title} (Owned: ${count})` : title;
         };
 
+        // DISCONNECT HANDLER
         socket.on('disconnect', () => {
+            elements.disconnectOverlay.style.display = 'flex';
+        });
+        socket.on('connect_error', () => {
             elements.disconnectOverlay.style.display = 'flex';
         });
 
@@ -687,7 +691,6 @@
             
             let isCrit = false;
             if (Math.random() * 100 < myCritChance) {
-                // Client side visual only - server validates actual math
                 val *= 10; 
                 isCrit = true;
             }
@@ -952,7 +955,6 @@
                 elements.myCritDisplay.textContent = `${myServerState.critChance || 0}%`;
                 elements.myCritMultiDisplay.textContent = `${myServerState.critMultiplier || 10}x`;
                 
-                // UPDATED: Display correct 2% per level
                 elements.mySynergyDisplay.textContent = `${(myServerState.synergyLevel || 0) * 2}%`; 
 
                 elements.helperCostDisplay.textContent = myServerState.nextHelperCost.toLocaleString();
@@ -1093,30 +1095,7 @@
             if(sounds.meow) sounds.meow.play();
             setTimeout(() => { catElement.remove(); }, 12500);
         });
-        
-        function jumpButton() { 
-            const container = elements.shakeWrapper; 
-            const button = elements.clickerButton; 
-            const containerWidth = container.offsetWidth; 
-            const buttonWidth = button.offsetWidth; 
-            const containerHeight = container.offsetHeight; 
-            const buttonHeight = button.offsetHeight; 
-            
-            // UPDATED: 40px safety padding so it doesn't jump off screen
-            const padding = 40;
-            const maxX = (containerWidth - buttonWidth) / 2 - padding; 
-            const maxY = (containerHeight - buttonHeight) / 2 - padding; 
-            
-            // Ensure we don't get negative values on very small screens
-            const safeMaxX = Math.max(0, maxX);
-            const safeMaxY = Math.max(0, maxY);
-
-            const randomLeftOffset = (Math.random() * 2 - 1) * safeMaxX; 
-            const randomTopOffset = (Math.random() * 2 - 1) * safeMaxY; 
-            
-            button.style.left = `${randomLeftOffset}px`; 
-            button.style.top = `${randomTopOffset}px`; 
-        }
+        function jumpButton() { const container = elements.shakeWrapper; const button = elements.clickerButton; const containerWidth = container.offsetWidth; const buttonWidth = button.offsetWidth; const containerHeight = container.offsetHeight; const buttonHeight = button.offsetHeight; const maxX = (containerWidth - buttonWidth) / 2; const maxY = (containerHeight - buttonHeight) / 2; const randomLeftOffset = (Math.random() * 2 - 1) * maxX; const randomTopOffset = (Math.random() * 2 - 1) * maxY; button.style.left = `${randomLeftOffset}px`; button.style.top = `${randomTopOffset}px`; }
     </script>
 </body>
 </html>
