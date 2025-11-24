@@ -29,7 +29,6 @@ const DRILL_COST = 1000;
 const EXCAVATOR_COST = 15000;    
 const POWER_CLICK_COST = 25;     
 const CRIT_COST = 500;
-const CRIT_MULTI_COST = 2000; 
 const SYNERGY_COST = 10000;       
 
 const CRACK_COST = 100;
@@ -38,12 +37,12 @@ const FLIP_COST = 500;
 const GREMLIN_COST = 750;
 const HIDDEN_CAT_BONUS = 50000; 
 
-// UPDATED: 25 Billion Final Goal
+// UPDATED: 250 Billion Final Goal
 const secretCodeThresholds = [
   { score: 250000,        code: 'U', position: 1, revealed: false }, // 250k
   { score: 25000000,      code: 'D', position: 3, revealed: false }, // 25 Million
   { score: 2500000000,    code: 'R', position: 2, revealed: false }, // 2.5 Billion
-  { score: 25000000000,   code: 'T', position: 0, revealed: false }  // 25 Billion
+  { score: 250000000000,  code: 'T', position: 0, revealed: false }  // 250 Billion
 ];
 
 function broadcastGameState() {
@@ -137,7 +136,6 @@ io.on('connection', (socket) => {
           
           clickPower: 1,
           critChance: 0, 
-          critMultiplier: 10, // Default 10x multiplier
           synergyLevel: 0, 
           
           nextHelperCost: HELPER_COST, 
@@ -147,7 +145,6 @@ io.on('connection', (socket) => {
           nextExcavatorCost: EXCAVATOR_COST, 
           nextPowerClickCost: POWER_CLICK_COST,
           nextCritCost: CRIT_COST,
-          nextCritMultiCost: CRIT_MULTI_COST,       
           nextSynergyCost: SYNERGY_COST, 
           
           totalHelpers: 0,
@@ -156,6 +153,7 @@ io.on('connection', (socket) => {
           totalExcavators: 0,
           totalClickUpgrades: 0,
           totalHammerUpgrades: 0, 
+          totalClicks: 0, // NEW: Track clicks for awards
           sacrifices: 0,
           attackCost: 0,
           foundSecret: false, 
@@ -191,6 +189,8 @@ io.on('connection', (socket) => {
   socket.on('playerClick', () => {
     const player = getPlayer(socket.id);
     if (player && (isExpeditionStarted || !isGameUnlocked) && !isGameOver) {
+        player.totalClicks = (player.totalClicks || 0) + 1; // Track stats
+
         const passiveBase = (player.helpers + (player.tnt * 10) + (player.drills * 50) + (player.excavators * 500));
         
         const synergyBonus = passiveBase * (player.synergyLevel * 0.02);
@@ -200,7 +200,7 @@ io.on('connection', (socket) => {
         const isCrit = (Math.random() * 100) < effectiveCritChance;
         
         if (isCrit) {
-            hitValue *= (player.critMultiplier || 10); 
+            hitValue *= 10; // Standard 10x crit
         }
 
         if (isNaN(hitValue)) hitValue = 1;
@@ -214,9 +214,11 @@ io.on('connection', (socket) => {
     const player = getPlayer(socket.id);
     if (player && !player.foundSecret) {
       player.foundSecret = true;
-      player.score += HIDDEN_CAT_BONUS;
-      player.totalEarnedMass += HIDDEN_CAT_BONUS;
-      io.emit('announcement', { text: `${player.name} found a secret fossil stash! (+${HIDDEN_CAT_BONUS})`, duration: 5000, priority: 2 });
+      // UPDATED: Multiplier applies to hidden cat
+      const totalBonus = HIDDEN_CAT_BONUS * partyMultiplier;
+      player.score += totalBonus;
+      player.totalEarnedMass += totalBonus;
+      io.emit('announcement', { text: `${player.name} found a secret fossil stash! (+${totalBonus.toLocaleString()})`, duration: 5000, priority: 2 });
       broadcastGameState();
     }
   });
@@ -248,19 +250,6 @@ io.on('connection', (socket) => {
   socket.on('purchaseCrit', () => handleUpgrade(socket, 'nextCritCost', 'critChance', null, 1.30));
   socket.on('purchaseSynergy', () => handleUpgrade(socket, 'nextSynergyCost', 'synergyLevel', null, 1.50));
   
-  socket.on('purchaseCritMulti', () => {
-      const player = getPlayer(socket.id);
-      if (!player) return;
-      if (!player.nextCritMultiCost) player.nextCritMultiCost = CRIT_MULTI_COST;
-      if (!player.critMultiplier) player.critMultiplier = 10;
-
-      if (player.score >= player.nextCritMultiCost) {
-          player.score -= player.nextCritMultiCost;
-          player.critMultiplier += 1; 
-          player.nextCritMultiCost = Math.ceil(player.nextCritMultiCost * 1.5);
-      }
-  });
-
   socket.on('purchaseHammer', () => {
       const player = getPlayer(socket.id);
       if (!player) return;
@@ -345,7 +334,7 @@ io.on('connection', (socket) => {
       player.sacrifices++;
       
       io.emit('earthquakeTriggered', { name: player.name, multiplier: partyMultiplier });
-      io.emit('announcement', { text: `${player.name} triggered an EARTHQUAKE! (Score Doubled!)`, duration: 5000, priority: 3 });
+      io.emit('announcement', { text: `${player.name} triggered an EARTHQUAKE! (Score Multiplier DOUBLED!)`, duration: 5000, priority: 3 });
       
       player.score = 0;
       // Reset Buildings
@@ -356,7 +345,6 @@ io.on('connection', (socket) => {
       // Reset Stats
       player.clickPower = 1;
       player.critChance = 0;
-      player.critMultiplier = 10;
       player.synergyLevel = 0;
       
       // Reset Costs
@@ -367,7 +355,6 @@ io.on('connection', (socket) => {
       player.nextPowerClickCost = POWER_CLICK_COST;
       player.nextHammerCost = HAMMER_COST; 
       player.nextCritCost = CRIT_COST;
-      player.nextCritMultiCost = CRIT_MULTI_COST;
       player.nextSynergyCost = SYNERGY_COST;
       
       broadcastGameState();

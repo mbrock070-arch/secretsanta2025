@@ -12,9 +12,10 @@
             --progress-bg: #5D4037; --progress-fill: #76FF03;
         }
         * { box-sizing: border-box; }
+        html, body { height: 100%; } /* UPDATED: Better for mobile scrolling */
         body {
             background-color: var(--main-bg-color); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+            margin: 0; display: flex; flex-direction: column; overflow: hidden;
             color: var(--text-color);
             user-select: none;
         }
@@ -41,8 +42,8 @@
         #progress-bar-fill { height: 100%; width: 0%; background-color: var(--progress-fill); background-image: linear-gradient(45deg, rgba(255,255,255,.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.15) 75%, transparent 75%, transparent); background-size: 20px 20px; transition: width 0.5s ease-in-out; }
         #progress-text { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; font-weight: bold; text-shadow: 1px 1px 2px black; line-height: 1; }
 
-        /* Added overflow-x hidden here to fix Flip scrolling */
-        .main-content { flex-grow: 1; width: 100%; overflow-y: auto; overflow-x: hidden; padding: 10px 20px 80px 20px; transition: transform 0.5s ease-in-out; -webkit-overflow-scrolling: touch; position: relative; }
+        /* UPDATED: overflow-x hidden and massive padding-bottom for Vivaldi */
+        .main-content { flex-grow: 1; width: 100%; overflow-y: auto; overflow-x: hidden; padding: 10px 20px 160px 20px; transition: transform 0.5s ease-in-out; -webkit-overflow-scrolling: touch; position: relative; }
         .page { display: none; flex-direction: column; align-items: center; text-align: center; padding-bottom: 20px; }
         .page.active { display: flex; }
         
@@ -299,7 +300,6 @@
                         <span id="stat-excavator" style="display:none">Excavators: <b id="my-excavators-display">0</b></span>
                         <span id="stat-pickaxe">Pickaxe: <b id="my-click-power-display">1</b></span>
                         <span id="stat-crit" style="display:none">Crit: <b id="my-crit-display">0%</b></span>
-                        <span id="stat-crit-multi" style="display:none">Crit X: <b id="my-crit-multi-display">10x</b></span>
                         <span id="stat-synergy" style="display:none">Synergy: <b id="my-synergy-display">0</b></span>
                     </div>
                     <button id="clicker-button">
@@ -338,14 +338,6 @@
                         <div class="btn-details">
                             <span class="btn-bonus">+1% Crit Chance</span>
                             <span class="btn-cost">Cost: <span id="crit-cost-display">500</span></span>
-                        </div>
-                    </button>
-
-                    <button class="upgrade-btn btn-active hidden-upgrade" id="purchase-crit-multi-button">
-                        <span class="btn-title" id="crit-multi-title">Magnifying Glass</span>
-                        <div class="btn-details">
-                            <span class="btn-bonus">+1x Crit Multiplier</span>
-                            <span class="btn-cost">Cost: <span id="crit-multi-cost-display">2000</span></span>
                         </div>
                     </button>
 
@@ -469,7 +461,6 @@
             purchasePowerClickButton: document.getElementById('purchase-power-click-button'),
             purchaseHammerButton: document.getElementById('purchase-hammer-button'),
             purchaseCritButton: document.getElementById('purchase-crit-button'),
-            purchaseCritMultiButton: document.getElementById('purchase-crit-multi-button'),
             purchaseSynergyButton: document.getElementById('purchase-synergy-button'),
             sacrificeButton: document.getElementById('sacrifice-button'),
             
@@ -481,7 +472,6 @@
             powerClickCostDisplay: document.getElementById('power-click-cost-display'),
             hammerCostDisplay: document.getElementById('hammer-cost-display'),
             critCostDisplay: document.getElementById('crit-cost-display'),
-            critMultiCostDisplay: document.getElementById('crit-multi-cost-display'),
             synergyCostDisplay: document.getElementById('synergy-cost-display'),
             sacrificeCostDisplay: document.getElementById('sacrifice-cost-display'),
             
@@ -493,7 +483,6 @@
             clickTitle: document.getElementById('click-title'),
             hammerTitle: document.getElementById('hammer-title'),
             critTitle: document.getElementById('crit-title'),
-            critMultiTitle: document.getElementById('crit-multi-title'),
             synergyTitle: document.getElementById('synergy-title'),
             
             announcementBar: document.getElementById('announcement-bar'),
@@ -506,7 +495,6 @@
             statDrill: document.getElementById('stat-drill'),
             statExcavator: document.getElementById('stat-excavator'),
             statCrit: document.getElementById('stat-crit'),
-            statCritMulti: document.getElementById('stat-crit-multi'),
             statSynergy: document.getElementById('stat-synergy'),
             
             // STAT VALUES
@@ -516,7 +504,6 @@
             myExcavatorsDisplay: document.getElementById('my-excavators-display'),
             myClickPowerDisplay: document.getElementById('my-click-power-display'),
             myCritDisplay: document.getElementById('my-crit-display'),
-            myCritMultiDisplay: document.getElementById('my-crit-multi-display'),
             mySynergyDisplay: document.getElementById('my-synergy-display'),
             
             hiddenCat: document.getElementById('hidden-cat'),
@@ -557,7 +544,6 @@
             btnClick: document.getElementById('purchase-power-click-button'),
             btnHammer: document.getElementById('purchase-hammer-button'),
             btnCrit: document.getElementById('purchase-crit-button'),
-            btnCritMulti: document.getElementById('purchase-crit-multi-button'),
             btnSynergy: document.getElementById('purchase-synergy-button'),
             btnSacrifice: document.getElementById('sacrifice-button'),
             
@@ -749,7 +735,6 @@
         elements.purchasePowerClickButton.addEventListener('click', () => { socket.emit('purchasePowerClick'); if(sounds.buy) sounds.buy.play(); });
         elements.purchaseHammerButton.addEventListener('click', () => { socket.emit('purchaseHammer'); if(sounds.buy) sounds.buy.play(); });
         elements.purchaseCritButton.addEventListener('click', () => { socket.emit('purchaseCrit'); if(sounds.buy) sounds.buy.play(); });
-        elements.purchaseCritMultiButton.addEventListener('click', () => { socket.emit('purchaseCritMulti'); if(sounds.buy) sounds.buy.play(); });
         elements.purchaseSynergyButton.addEventListener('click', () => { socket.emit('purchaseSynergy'); if(sounds.buy) sounds.buy.play(); });
         elements.sacrificeButton.addEventListener('click', () => socket.emit('sacrificeForParty')); 
         
@@ -914,9 +899,6 @@
                 updateVisibilityAndStats(myServerState.nextCritCost, elements.btnCrit, null, elements.statCrit, myServerState.critChance);
                 updateBtnTitle(elements.critTitle, "Lucky Geode", myServerState.critChance || 0);
 
-                updateVisibilityAndStats(myServerState.nextCritMultiCost, elements.btnCritMulti, null, elements.statCritMulti, (myServerState.critMultiplier || 10));
-                updateBtnTitle(elements.critMultiTitle, "Magnifying Glass", (myServerState.critMultiplier || 10) - 10);
-
                 updateVisibilityAndStats(myServerState.nextSynergyCost, elements.btnSynergy, null, elements.statSynergy, myServerState.synergyLevel);
                 updateBtnTitle(elements.synergyTitle, "Middle Manager", myServerState.synergyLevel || 0);
                 
@@ -953,8 +935,8 @@
                 elements.myExcavatorsDisplay.textContent = myServerState.excavators || 0;
                 elements.myClickPowerDisplay.textContent = myServerState.clickPower;
                 elements.myCritDisplay.textContent = `${myServerState.critChance || 0}%`;
-                elements.myCritMultiDisplay.textContent = `${myServerState.critMultiplier || 10}x`;
                 
+                // UPDATED: Display correct 2% per level
                 elements.mySynergyDisplay.textContent = `${(myServerState.synergyLevel || 0) * 2}%`; 
 
                 elements.helperCostDisplay.textContent = myServerState.nextHelperCost.toLocaleString();
@@ -963,7 +945,6 @@
                 elements.excavatorCostDisplay.textContent = (myServerState.nextExcavatorCost || 15000).toLocaleString();
                 elements.powerClickCostDisplay.textContent = myServerState.nextPowerClickCost.toLocaleString();
                 elements.critCostDisplay.textContent = (myServerState.nextCritCost || 500).toLocaleString();
-                elements.critMultiCostDisplay.textContent = (myServerState.nextCritMultiCost || 2000).toLocaleString();
                 elements.synergyCostDisplay.textContent = (myServerState.nextSynergyCost || 10000).toLocaleString();
             }
         });
@@ -998,17 +979,54 @@
             elements.summaryContent.innerHTML = '';
             
             const playerArray = Object.values(players);
+            
+            // Calculate values for Awards
             const maxMass = Math.max(...playerArray.map(p => p.totalEarnedMass));
+            const minMass = Math.min(...playerArray.map(p => p.totalEarnedMass));
             const maxQuakes = Math.max(...playerArray.map(p => p.sacrifices));
+            const maxAttack = Math.max(...playerArray.map(p => p.attackCost || 0));
+            const minAttack = Math.min(...playerArray.map(p => p.attackCost || 0));
+            const maxClicks = Math.max(...playerArray.map(p => p.totalClicks || 0));
+            const minClicks = Math.min(...playerArray.map(p => p.totalClicks || 0));
+            const maxSynergy = Math.max(...playerArray.map(p => p.synergyLevel || 0));
+            const maxCats = Math.max(...playerArray.map(p => {
+                let cats = 0;
+                if(p.history) {
+                    for (let k in p.history) cats += p.history[k].cats;
+                }
+                return cats;
+            }));
+            
+            // Count total passive upgrades
+            const getPassiveCount = (p) => (p.totalHelpers || 0) + (p.totalTnt || 0) + (p.totalDrills || 0) + (p.totalExcavators || 0);
+            const maxPassive = Math.max(...playerArray.map(p => getPassiveCount(p)));
+
             playerArray.sort((a, b) => b.totalEarnedMass - a.totalEarnedMass);
             
             playerArray.forEach(player => {
                 const card = document.createElement('div');
                 card.className = 'summary-card';
                 let badges = '';
-                if (player.totalEarnedMass === maxMass) badges += ' 💰 TYCOON';
-                if (player.sacrifices > 0 && player.sacrifices === maxQuakes) badges += ' 🌋 HERO';
                 
+                // AWARD LOGIC
+                if (player.totalEarnedMass === maxMass) badges += ' 🏆 MVP';
+                else if (player.totalEarnedMass === minMass) badges += ' 🦠 The Leech';
+                
+                if (player.sacrifices > 0 && player.sacrifices === maxQuakes) badges += ' 🌋 Hero';
+                
+                if ((player.attackCost || 0) === maxAttack && maxAttack > 0) badges += ' 😈 The Menace';
+                if ((player.attackCost || 0) === 0) badges += ' 😇 The Saint';
+                
+                if ((player.totalClicks || 0) === maxClicks) badges += ' 👆 Finger Blaster';
+                if ((player.totalClicks || 0) === minClicks) badges += ' 😴 Sleeping Beauty';
+                
+                if (player.synergyLevel === maxSynergy && maxSynergy > 0) badges += ' 📈 Middle Manager';
+                if (getPassiveCount(player) === maxPassive && maxPassive > 0) badges += ' 🏗️ The Investor';
+                
+                let playerCats = 0;
+                if(player.history) { for (let k in player.history) playerCats += player.history[k].cats; }
+                if (playerCats === maxCats && maxCats > 0) badges += ' 🐈 Cat Lady';
+
                 let naughtylistHTML = '';
                 if (player.history && Object.keys(player.history).length > 0) {
                     naughtylistHTML = `<div class="naughty-list"><h4>😈 Attacks Sent By ${player.name}:</h4>`;
@@ -1027,8 +1045,9 @@
                     naughtylistHTML = `<div class="naughty-list"><h4>😈 Attacks Sent:</h4><div class="naughty-item" style="color: green;">😇 A perfect angel! (No attacks sent)</div></div>`;
                 }
                 card.innerHTML = `
-                    <h3>${player.name} ${badges}</h3>
+                    <h3>${player.name} <span style="font-size:12px">${badges}</span></h3>
                     <div class="summary-stat"><span>Final Mass Score:</span> <strong>${Math.floor(player.totalEarnedMass).toLocaleString()}</strong></div>
+                    <div class="summary-stat"><span>Total Manual Clicks:</span> <strong>${player.totalClicks || 0}</strong></div>
                     <div class="summary-stat" style="margin-top: 10px; border-top: 1px dashed #A1887F; padding-top: 5px;"><strong>Lifetime Upgrades:</strong></div>
                     <div class="summary-stat"><span>Geologists:</span> <strong>${player.totalHelpers || 0}</strong></div>
                     <div class="summary-stat"><span>TNT:</span> <strong>${player.totalTnt || 0}</strong></div>
