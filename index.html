@@ -205,11 +205,27 @@
         <h2>Expedition Lobby 📡</h2>
         <p style="margin-bottom: 10px;">The channel is open.</p>
         <p style="font-weight: bold; color: #FFCC80; font-size: 18px;">Get others to join via your QR code!</p>
+        
+        <div style="border: 2px solid #BF360C; background-color: rgba(191, 54, 12, 0.2); padding: 10px; border-radius: 8px; margin-top: 15px; margin-bottom: 10px;">
+            <p style="font-weight: 900; color: #FFCC80; font-size: 16px; margin: 0;">⚠️ WAIT FOR EVERYONE TO JOIN!</p>
+            <p style="font-size: 14px; margin: 5px 0 0 0; color: #EFEBE9;">You need the whole party to dig through this rock.</p>
+        </div>
+
         <div id="lobby-container">
             <h3>Geologists Ready: <span id="lobby-count">0</span></h3>
             <ul id="lobby-list"></ul>
         </div>
         <button id="lets-dig-button" disabled>Waiting for Team...</button>
+    </div>
+
+    <div id="confirm-start-overlay" class="full-screen-overlay" style="display: none; z-index: 3000;">
+        <h2>Ready to Dig?</h2>
+        <p>Ensure ALL Geologists have joined the lobby.</p>
+        <p style="color: #FFB300; font-size: 14px; margin-top: 0;">Late joiners cannot enter once the expedition begins!</p>
+        <div style="display: flex; gap: 10px; width: 100%; justify-content: center; margin-top: 20px;">
+            <button id="cancel-start-btn" style="background-color: #8D6E63;">Wait</button>
+            <button id="confirm-start-btn" style="background-color: #4CAF50;">LET'S DIG!</button>
+        </div>
     </div>
 
     <div id="waiting-overlay" class="full-screen-overlay">
@@ -459,7 +475,7 @@
             
             announcementBar: document.getElementById('announcement-bar'),
             codeBoxes: document.querySelectorAll('.code-box'),
-            codeGoals: document.querySelectorAll('.code-goal'), // NEW
+            codeGoals: document.querySelectorAll('.code-goal'), 
             
             // STATS Game Tab (WRAPPERS)
             statGeologist: document.getElementById('stat-geologist'),
@@ -501,6 +517,11 @@
             summaryOverlay: document.getElementById('summary-overlay'),
             summaryContent: document.getElementById('summary-content'),
             finalCodeDisplay: document.getElementById('final-code-display'),
+            
+            // NEW CONFIRMATION REFS
+            confirmStartOverlay: document.getElementById('confirm-start-overlay'),
+            confirmStartBtn: document.getElementById('confirm-start-btn'),
+            cancelStartBtn: document.getElementById('cancel-start-btn'),
             
             // BUTTON REFS
             btnHelper: document.getElementById('purchase-helper-button'),
@@ -555,14 +576,16 @@
         }
         
         function updateStartButton() {
-            if (totalPlayers > 1) {
+            // UPDATED: REQUIRE 2 PLAYERS
+            if (totalPlayers >= 2) {
                 elements.letsDigButton.disabled = false;
-                elements.letsDigButton.textContent = "Let's Dig!";
+                elements.letsDigButton.innerHTML = `LAUNCH EXPEDITION! 🚀<br><span style="font-size:12px">(All ${totalPlayers} Geologists Ready)</span>`;
                 elements.letsDigButton.style.backgroundColor = "#4CAF50"; 
                 elements.letsDigButton.style.cursor = "pointer";
             } else {
                 elements.letsDigButton.disabled = true;
-                elements.letsDigButton.textContent = "Waiting for Team...";
+                const needed = 2 - totalPlayers;
+                elements.letsDigButton.textContent = `Waiting for teammates... (${totalPlayers}/2)`;
                 elements.letsDigButton.style.backgroundColor = "#A1887F";
                 elements.letsDigButton.style.cursor = "not-allowed";
             }
@@ -657,9 +680,21 @@
             updateStartButton();
         });
 
+        // NEW: OPEN CONFIRMATION DIALOG
         elements.letsDigButton.addEventListener('click', () => {
+            elements.confirmStartOverlay.style.display = 'flex';
+        });
+
+        // NEW: CONFIRM ACTION
+        elements.confirmStartBtn.addEventListener('click', () => {
             socket.emit('startExpedition');
+            elements.confirmStartOverlay.style.display = 'none';
             elements.inviteOverlay.style.display = 'none';
+        });
+
+        // NEW: CANCEL ACTION
+        elements.cancelStartBtn.addEventListener('click', () => {
+            elements.confirmStartOverlay.style.display = 'none';
         });
         
         elements.earthquakeCloseBtn.addEventListener('click', () => {
