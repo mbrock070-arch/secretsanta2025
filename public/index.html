@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Geology Clicker Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="hidden-cat"></div>
+    <div id="login-container" class="page active">
+        <h1>Enter Your Geologist Name</h1>
+        <input type="text" id="name-input" placeholder="Your Name">
+        <button id="join-button">Begin Expedition</button>
+    </div>
+
+    <div id="help-overlay" class="full-screen-overlay">
+        <h2>How to Play</h2>
+        <ul>
+            <li><strong>Tap the Rock:</strong> Generate Mass.</li>
+            <li><strong>Buy Upgrades:</strong> Increase your output (Active & Passive).</li>
+            <li><strong>Prank Friends:</strong> Use the "Pranks" tab to mess with other geologists!</li>
+            <li><strong>Trigger Earthquake:</strong> Reset your progress to boost the WHOLE PARTY's multiplier.</li>
+            <li><strong>Goal:</strong> Work together to reveal the 4-digit Core Combination!</li>
+            <li><em>Tip: If the game freezes, refresh the page. You won't lose progress.</em></li>
+        </ul>
+        <button id="help-close-btn">Got it!</button>
+    </div>
+
+    <div id="disconnect-overlay" class="full-screen-overlay">
+        <h2>⚠️ DISCONNECTED</h2>
+        <p>Connection lost to Mission Control.</p>
+        <p>Please refresh the page.</p>
+        <button onclick="window.location.reload()">Refresh Now</button>
+    </div>
+
+    <div id="invite-overlay" class="full-screen-overlay">
+        <h2>Expedition Lobby 📡</h2>
+        <p style="margin-bottom: 10px;">The channel is open.</p>
+        <p style="font-weight: bold; color: #FFCC80; font-size: 18px;">Get others to join via your QR code!</p>
+        
+        <div style="border: 2px solid #BF360C; background-color: rgba(191, 54, 12, 0.2); padding: 10px; border-radius: 8px; margin-top: 15px; margin-bottom: 10px;">
+            <p style="font-weight: 900; color: #FFCC80; font-size: 16px; margin: 0;">⚠️ WAIT FOR EVERYONE TO JOIN!</p>
+            <p style="font-size: 14px; margin: 5px 0 0 0; color: #EFEBE9;">Late joiners cannot enter once started.</p>
+        </div>
+
+        <div id="lobby-container">
+            <h3>Geologists Ready: <span id="lobby-count">0</span></h3>
+            <ul id="lobby-list"></ul>
+        </div>
+        <button id="lets-dig-button" disabled>Waiting...</button>
+    </div>
+
+    <div id="confirm-start-overlay" class="full-screen-overlay" style="display: none; z-index: 3000;">
+        <h2>Ready to Dig?</h2>
+        <p>Ensure ALL Geologists have joined the lobby.</p>
+        <div style="display: flex; gap: 10px; width: 100%; justify-content: center; margin-top: 20px;">
+            <button id="cancel-start-btn" style="background-color: #8D6E63;">Wait</button>
+            <button id="confirm-start-btn" style="background-color: #4CAF50;">LET'S DIG!</button>
+        </div>
+    </div>
+
+    <div id="waiting-overlay" class="full-screen-overlay">
+        <div id="waiting-spinner"></div>
+        <h2>Mission Control</h2>
+        <p>Connection Established.</p>
+        <p>Awaiting launch signal...</p>
+    </div>
+    
+    <div id="earthquake-overlay" class="full-screen-overlay">
+        <button id="earthquake-close-btn">✕</button>
+        <h2>EARTHQUAKE!</h2>
+        <p><span id="earthquake-user" class="sacrificer-name">Unknown</span> triggered a massive tremor!</p>
+        <p>Increased Multiplier to <span id="earthquake-multiplier" style="font-weight:bold;">1x</span> for the rest of the game!</p>
+    </div>
+    
+    <div id="summary-overlay" class="full-screen-overlay" style="display: none;">
+        <h2>EXPEDITION COMPLETE!</h2>
+        <p>The Core has been breached.</p>
+        <div id="final-code-display">----</div>
+        <div id="summary-content"></div>
+    </div>
+
+    <div id="game-wrapper">
+        <div class="static-header">
+            <button id="help-btn">?</button>
+            <div id="secret-code-container" class="locked-feature">
+                <h3>Core Combination</h3>
+                <div id="code-display">
+                    <div class="code-wrapper"><div class="code-box">?</div><div class="code-goal">-</div></div>
+                    <div class="code-wrapper"><div class="code-box">?</div><div class="code-goal">-</div></div>
+                    <div class="code-wrapper"><div class="code-box">?</div><div class="code-goal">-</div></div>
+                    <div class="code-wrapper"><div class="code-box">?</div><div class="code-goal">-</div></div>
+                </div>
+            </div>
+            <div id="party-progress-container" class="locked-feature">
+                <div id="global-stats-bar">
+                    <span>Total: <span id="total-mass-display">0</span></span>
+                    <span>Mult: <span id="header-multiplier">1x</span></span>
+                </div>
+                <div id="progress-bar-bg">
+                    <div id="progress-bar-fill"></div>
+                    <div id="progress-text">0%</div>
+                </div>
+            </div>
+            <div id="announcement-bar" class="locked-feature"></div>
+        </div>
+        <div class="main-content">
+            <div id="game-page" class="page active">
+                <div id="shake-wrapper">
+                    <p id="my-score-display">My Mass: 0</p>
+                    <p id="passive-rate-display">(+0/sec)</p>
+                    <div class="my-stats-display locked-feature">
+                        <span id="stat-geologist">Geologists: <b id="my-helpers-display">0</b></span>
+                        <span id="stat-tnt">TNT: <b id="my-tnt-display">0</b></span>
+                        <span id="stat-drill">Drills: <b id="my-drills-display">0</b></span>
+                        <span id="stat-excavator">Exc: <b id="my-excavators-display">0</b></span>
+                        <span id="stat-pickaxe">Pickaxe: <b id="my-click-power-display">1</b></span>
+                        <span id="stat-crit">Crit: <b id="my-crit-display">0%</b></span>
+                        <span id="stat-synergy">Synergy: <b id="my-synergy-display">0</b></span>
+                    </div>
+                    <button id="clicker-button"><h2 id="rock-text">MINE ROCK!</h2></button>
+                </div>
+            </div>
+            
+            <div id="upgrades-page" class="page">
+                <div id="sticky-upgrades-header">
+                    My Mass: <span id="upgrades-mass-display">0</span>
+                </div>
+                <button id="sacrifice-button" class="hidden-upgrade">Trigger Earthquake! (Multiplies Score x2!) (Cost: <span id="sacrifice-cost-display">7,500</span>)</button>
+                
+                <h3>Tap Power</h3>
+                <div class="upgrades-grid">
+                    <button class="upgrade-btn btn-active" id="purchase-power-click-button">
+                        <span class="btn-title" id="click-title">Pickaxe</span>
+                        <div class="btn-details"><span class="btn-bonus">+1 Mass/Click</span><span class="btn-cost">Cost: <span id="power-click-cost-display">25</span></span></div>
+                    </button>
+                    <button class="upgrade-btn btn-active hidden-upgrade" id="purchase-hammer-button">
+                        <span class="btn-title" id="hammer-title">Pneumatic</span>
+                        <div class="btn-details"><span class="btn-bonus">+10 Mass/Click</span><span class="btn-cost">Cost: <span id="hammer-cost-display">500</span></span></div>
+                    </button>
+                    <button class="upgrade-btn btn-active hidden-upgrade" id="purchase-crit-button">
+                        <span class="btn-title" id="crit-title">Lucky Geode</span>
+                        <div class="btn-details"><span class="btn-bonus">+1% Crit Chance</span><span class="btn-cost">Cost: <span id="crit-cost-display">500</span></span></div>
+                    </button>
+                    <button class="upgrade-btn btn-active hidden-upgrade" id="purchase-synergy-button">
+                        <span class="btn-title" id="synergy-title">Middle Manager</span>
+                        <div class="btn-details"><span class="btn-bonus">2% Passive/Click</span><span class="btn-cost">Cost: <span id="synergy-cost-display">10,000</span></span></div>
+                    </button>
+                </div>
+
+                <h3>Passive Mass</h3>
+                <div class="upgrades-grid">
+                    <button class="upgrade-btn btn-passive" id="purchase-helper-button">
+                        <span class="btn-title" id="helper-title">Geologist</span>
+                        <div class="btn-details"><span class="btn-bonus">+1/sec</span><span class="btn-cost">Cost: <span id="helper-cost-display">15</span></span></div>
+                    </button>
+                    <button class="upgrade-btn btn-passive hidden-upgrade" id="purchase-tnt-button">
+                        <span class="btn-title" id="tnt-title">TNT Charge</span>
+                        <div class="btn-details"><span class="btn-bonus">+10/sec</span><span class="btn-cost">Cost: <span id="tnt-cost-display">250</span></span></div>
+                    </button>
+                    <button class="upgrade-btn btn-passive hidden-upgrade" id="purchase-drill-button">
+                        <span class="btn-title" id="drill-title">Ind. Drill</span>
+                        <div class="btn-details"><span class="btn-bonus">+50/sec</span><span class="btn-cost">Cost: <span id="drill-cost-display">1000</span></span></div>
+                    </button>
+                    <button class="upgrade-btn btn-passive hidden-upgrade" id="purchase-excavator-button">
+                        <span class="btn-title" id="excavator-title">Excavator</span>
+                        <div class="btn-details"><span class="btn-bonus">+500/sec</span><span class="btn-cost">Cost: <span id="excavator-cost-display">15000</span></span></div>
+                    </button>
+                </div>
+            </div>
+            <div id="leaderboard-page" class="page">
+                <h1>Pranks & Ranks</h1>
+                <div id="leaderboard"></div>
+            </div>
+        </div>
+        <nav class="tab-nav locked-feature">
+            <button class="tab-button active" data-page="game-page"><span>🖱️</span>Mine</button>
+            <button class="tab-button" data-page="upgrades-page"><span>💎</span>Upgrades</button>
+            <button class="tab-button" data-page="leaderboard-page"><span>🎭</span>Pranks</button>
+        </nav>
+    </div>
+
+    <audio id="click-sound" src="tink.mp3" preload="auto"></audio>
+    <audio id="purchase-sound" src="buy.mp3" preload="auto"></audio>
+    <audio id="prank-sound" src="laugh.mp3" preload="auto"></audio>
+    <audio id="secret-sound" src="chime.mp3" preload="auto"></audio>
+    <audio id="sacrifice-sound" src="boom.mp3" preload="auto"></audio>
+    <audio id="crack-sound" src="crack.mp3" preload="auto"></audio>
+    <audio id="whoosh-sound" src="whoosh.mp3" preload="auto"></audio>
+    <audio id="meow-sound" src="meow.mp3" preload="auto"></audio>
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="client.js"></script>
+</body>
+</html>
