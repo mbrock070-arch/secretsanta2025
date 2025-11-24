@@ -28,7 +28,9 @@ const HAMMER_COST = 500;
 const DRILL_COST = 1000;         
 const EXCAVATOR_COST = 15000;    
 const POWER_CLICK_COST = 25;     
-const CRIT_COST = 500;           
+const CRIT_COST = 500;
+// NEW: Crit Multiplier Upgrade Cost
+const CRIT_MULTI_COST = 2000; 
 const SYNERGY_COST = 10000;       
 
 const CRACK_COST = 100;
@@ -37,7 +39,8 @@ const FLIP_COST = 500;
 const GREMLIN_COST = 750;
 const HIDDEN_CAT_BONUS = 50000; 
 
-// UPDATED: Specific User Thresholds with 250B Final
+// UPDATED: User Defined Exponential Curve
+// 250k -> 25M -> 2.5B -> 250B
 const secretCodeThresholds = [
   { score: 250000,        code: 'U', position: 1, revealed: false }, // 250k
   { score: 25000000,      code: 'D', position: 3, revealed: false }, // 25 Million
@@ -111,7 +114,6 @@ io.on('connection', (socket) => {
     console.log("⚠️ GAME HAS BEEN RESET BY ADMIN ⚠️");
   });
 
-  // --- ADMIN CHEAT (Keep this for your testing, remove if desired) ---
   socket.on('dev_grant_mass', (amount) => {
       const player = getPlayer(socket.id);
       if (player) {
@@ -137,6 +139,7 @@ io.on('connection', (socket) => {
           
           clickPower: 1,
           critChance: 0, 
+          critMultiplier: 10, // Default 10x multiplier
           synergyLevel: 0, 
           
           nextHelperCost: HELPER_COST, 
@@ -145,7 +148,8 @@ io.on('connection', (socket) => {
           nextDrillCost: DRILL_COST, 
           nextExcavatorCost: EXCAVATOR_COST, 
           nextPowerClickCost: POWER_CLICK_COST,
-          nextCritCost: CRIT_COST,       
+          nextCritCost: CRIT_COST,
+          nextCritMultiCost: CRIT_MULTI_COST,       
           nextSynergyCost: SYNERGY_COST, 
           
           totalHelpers: 0,
@@ -191,14 +195,16 @@ io.on('connection', (socket) => {
     if (player && (isExpeditionStarted || !isGameUnlocked) && !isGameOver) {
         const passiveBase = (player.helpers + (player.tnt * 10) + (player.drills * 50) + (player.excavators * 500));
         
-        // UPDATED: Synergy is now 2% (0.02)
         const synergyBonus = passiveBase * (player.synergyLevel * 0.02);
-        
         let hitValue = (player.clickPower + synergyBonus) * partyMultiplier;
         
         const effectiveCritChance = Math.min(50, player.critChance);
         const isCrit = (Math.random() * 100) < effectiveCritChance;
-        if (isCrit) hitValue *= 10; 
+        
+        if (isCrit) {
+            // UPDATED: Use dynamic crit multiplier
+            hitValue *= (player.critMultiplier || 10); 
+        }
 
         if (isNaN(hitValue)) hitValue = 1;
 
@@ -245,6 +251,20 @@ io.on('connection', (socket) => {
   socket.on('purchaseCrit', () => handleUpgrade(socket, 'nextCritCost', 'critChance', null, 1.30));
   socket.on('purchaseSynergy', () => handleUpgrade(socket, 'nextSynergyCost', 'synergyLevel', null, 1.50));
   
+  // NEW: Purchase Crit Multiplier
+  socket.on('purchaseCritMulti', () => {
+      const player = getPlayer(socket.id);
+      if (!player) return;
+      if (!player.nextCritMultiCost) player.nextCritMultiCost = CRIT_MULTI_COST;
+      if (!player.critMultiplier) player.critMultiplier = 10;
+
+      if (player.score >= player.nextCritMultiCost) {
+          player.score -= player.nextCritMultiCost;
+          player.critMultiplier += 1; // Adds +1x to the multiplier
+          player.nextCritMultiCost = Math.ceil(player.nextCritMultiCost * 1.5);
+      }
+  });
+
   socket.on('purchaseHammer', () => {
       const player = getPlayer(socket.id);
       if (!player) return;
@@ -322,14 +342,14 @@ io.on('connection', (socket) => {
     const player = getPlayer(socket.id);
     if (player && player.score >= sacrificeCost) {
       
-      // UPDATED: Additive 5x
-      partyMultiplier += 5;
+      // UPDATED: Testing Value 20x
+      partyMultiplier += 20;
       
       sacrificeCost *= 5; // Costs 5x more each time
       player.sacrifices++;
       
       io.emit('earthquakeTriggered', { name: player.name, multiplier: partyMultiplier });
-      io.emit('announcement', { text: `${player.name} triggered an EARTHQUAKE! (+500% Power)`, duration: 5000, priority: 3 });
+      io.emit('announcement', { text: `${player.name} triggered an EARTHQUAKE! (+2000% Power)`, duration: 5000, priority: 3 });
       
       player.score = 0;
       // Reset Buildings
@@ -340,6 +360,7 @@ io.on('connection', (socket) => {
       // Reset Stats
       player.clickPower = 1;
       player.critChance = 0;
+      player.critMultiplier = 10;
       player.synergyLevel = 0;
       
       // Reset Costs
@@ -350,6 +371,7 @@ io.on('connection', (socket) => {
       player.nextPowerClickCost = POWER_CLICK_COST;
       player.nextHammerCost = HAMMER_COST; 
       player.nextCritCost = CRIT_COST;
+      player.nextCritMultiCost = CRIT_MULTI_COST;
       player.nextSynergyCost = SYNERGY_COST;
       
       broadcastGameState();
