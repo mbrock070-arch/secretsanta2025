@@ -223,7 +223,7 @@
         <button id="earthquake-close-btn">✕</button>
         <h2>EARTHQUAKE!</h2>
         <p><span id="earthquake-user" class="sacrificer-name">Unknown</span> triggered a massive tremor!</p>
-        <p>They sacrificed everything to multiply ALL scores by <span id="earthquake-multiplier" style="font-weight:bold;">2x</span>!</p>
+        <p>They sacrificed everything to BOOST production! (Current Mult: <span id="earthquake-multiplier" style="font-weight:bold;">1x</span>)</p>
     </div>
     
     <div id="summary-overlay" class="full-screen-overlay" style="display: none;">
@@ -285,7 +285,7 @@
                     My Mass: <span id="upgrades-mass-display">0</span>
                 </div>
                 
-                <button id="sacrifice-button" class="hidden-upgrade">Trigger Earthquake! (Cost: <span id="sacrifice-cost-display">7500</span>)</button>
+                <button id="sacrifice-button" class="hidden-upgrade">Trigger Earthquake! (+5x Multiplier) (Cost: <span id="sacrifice-cost-display">7,500</span>)</button>
                 
                 <h3>Tap Power</h3>
                 <div class="upgrades-grid">
@@ -316,7 +316,7 @@
                     <button class="upgrade-btn btn-active hidden-upgrade" id="purchase-synergy-button">
                         <span class="btn-title" id="synergy-title">Middle Manager</span>
                         <div class="btn-details">
-                            <span class="btn-bonus">5% mass/sec added</span>
+                            <span class="btn-bonus">2% mass/sec added</span>
                             <span class="btn-cost">Cost: <span id="synergy-cost-display">10,000</span></span>
                         </div>
                     </button>
@@ -630,7 +630,8 @@
                 y = rect.top + rect.height / 2;
             }
             
-            const synergyBonus = myPassiveIncome * (mySynergy * 0.05);
+            // SYNERGY UPDATE: 2% (0.02)
+            const synergyBonus = myPassiveIncome * (mySynergy * 0.02);
             let val = (myClickPower + synergyBonus) * myMulti;
             
             let isCrit = false;
@@ -885,7 +886,9 @@
                 elements.myExcavatorsDisplay.textContent = myServerState.excavators || 0;
                 elements.myClickPowerDisplay.textContent = myServerState.clickPower;
                 elements.myCritDisplay.textContent = `${myServerState.critChance || 0}%`;
-                elements.mySynergyDisplay.textContent = `${(myServerState.synergyLevel || 0) * 5}%`; 
+                
+                // UPDATED: Display correct 2% per level
+                elements.mySynergyDisplay.textContent = `${(myServerState.synergyLevel || 0) * 2}%`; 
 
                 elements.helperCostDisplay.textContent = myServerState.nextHelperCost.toLocaleString();
                 elements.tntCostDisplay.textContent = (myServerState.nextTntCost || 250).toLocaleString();

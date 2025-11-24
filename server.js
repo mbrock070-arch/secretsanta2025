@@ -37,13 +37,12 @@ const FLIP_COST = 500;
 const GREMLIN_COST = 750;
 const HIDDEN_CAT_BONUS = 50000; 
 
-// UPDATED: User Defined Exponential Curve
-// 250k -> 25M -> 2.5B -> 100B
+// UPDATED: Specific User Thresholds with 250B Final
 const secretCodeThresholds = [
   { score: 250000,        code: 'U', position: 1, revealed: false }, // 250k
   { score: 25000000,      code: 'D', position: 3, revealed: false }, // 25 Million
   { score: 2500000000,    code: 'R', position: 2, revealed: false }, // 2.5 Billion
-  { score: 100000000000,  code: 'T', position: 0, revealed: false }  // 100 Billion
+  { score: 250000000000,  code: 'T', position: 0, revealed: false }  // 250 Billion
 ];
 
 function broadcastGameState() {
@@ -110,6 +109,16 @@ io.on('connection', (socket) => {
     secretCodeThresholds.forEach(t => t.revealed = false);
     io.emit('forceRefresh');
     console.log("⚠️ GAME HAS BEEN RESET BY ADMIN ⚠️");
+  });
+
+  // --- ADMIN CHEAT (Keep this for your testing, remove if desired) ---
+  socket.on('dev_grant_mass', (amount) => {
+      const player = getPlayer(socket.id);
+      if (player) {
+          player.score += amount;
+          player.totalEarnedMass += amount;
+          broadcastGameState();
+      }
   });
 
   socket.on('joinGame', (data) => {
@@ -181,7 +190,10 @@ io.on('connection', (socket) => {
     const player = getPlayer(socket.id);
     if (player && (isExpeditionStarted || !isGameUnlocked) && !isGameOver) {
         const passiveBase = (player.helpers + (player.tnt * 10) + (player.drills * 50) + (player.excavators * 500));
-        const synergyBonus = passiveBase * (player.synergyLevel * 0.05);
+        
+        // UPDATED: Synergy is now 2% (0.02)
+        const synergyBonus = passiveBase * (player.synergyLevel * 0.02);
+        
         let hitValue = (player.clickPower + synergyBonus) * partyMultiplier;
         
         const effectiveCritChance = Math.min(50, player.critChance);
@@ -309,12 +321,15 @@ io.on('connection', (socket) => {
   socket.on('sacrificeForParty', () => {
     const player = getPlayer(socket.id);
     if (player && player.score >= sacrificeCost) {
-      partyMultiplier *= 2;
+      
+      // UPDATED: Additive 5x
+      partyMultiplier += 5;
+      
       sacrificeCost *= 5; // Costs 5x more each time
       player.sacrifices++;
       
       io.emit('earthquakeTriggered', { name: player.name, multiplier: partyMultiplier });
-      io.emit('announcement', { text: `${player.name} triggered an EARTHQUAKE!`, duration: 5000, priority: 3 });
+      io.emit('announcement', { text: `${player.name} triggered an EARTHQUAKE! (+500% Power)`, duration: 5000, priority: 3 });
       
       player.score = 0;
       // Reset Buildings
