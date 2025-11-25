@@ -1,14 +1,14 @@
-// gameLogic.js
 const Config = require('./gameConfig');
 
-let players = {};
+// FIXED: Use 'const' so the reference never breaks
+const players = {}; 
+
 let partyMultiplier = 1;
 let sacrificeCost = Config.COSTS.SACRIFICE_START;
 let isGameUnlocked = false;
 let isExpeditionStarted = false;
 let isGameOver = false;
 
-// Helper to get player by socket ID
 function getPlayer(socketId, socketIdMap) {
     const playerId = socketIdMap[socketId];
     return players[playerId];
@@ -45,7 +45,12 @@ function initPlayer(id, name) {
 }
 
 function resetGame() {
-    players = {};
+    // FIXED: Do not reassign players = {}. That breaks the link to server.js.
+    // Instead, delete all keys.
+    for (const key in players) {
+        delete players[key];
+    }
+    
     partyMultiplier = 1;
     sacrificeCost = Config.COSTS.SACRIFICE_START;
     isGameUnlocked = false;
@@ -54,7 +59,6 @@ function resetGame() {
     Config.THRESHOLDS.forEach(t => t.revealed = false);
 }
 
-// Export the state and functions
 module.exports = {
     players,
     partyMultiplier,
@@ -65,7 +69,6 @@ module.exports = {
     getPlayer,
     initPlayer,
     resetGame,
-    // Getters/Setters for primitives (since they are passed by value)
     getMultiplier: () => partyMultiplier,
     setMultiplier: (val) => partyMultiplier = val,
     addMultiplier: (val) => partyMultiplier += val,

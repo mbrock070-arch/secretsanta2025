@@ -10,8 +10,11 @@ const httpServer = http.createServer(app);
 const io = new Server(httpServer, { cors: { origin: "*" } });
 const port = process.env.PORT || 3000;
 
-// Serve static files from 'public' folder
-app.use(express.static(path.join(__dirname, 'public')));
+// OLD (WRONG):
+// app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'index.html')); });
+
+// NEW (CORRECT):
+app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'index.html')); });
 
 let socketIdToPlayerId = {};
 
@@ -20,7 +23,6 @@ function broadcastGameState() {
     const nextThresholdObj = Config.THRESHOLDS.find(t => !t.revealed);
     const nextGoal = nextThresholdObj ? nextThresholdObj.score : 0;
 
-    // Map thresholds for client
     const thresholdData = Config.THRESHOLDS.map(t => ({
         score: t.score,
         position: t.position,
@@ -42,7 +44,7 @@ function broadcastGameState() {
 function handleUpgrade(socket, costProp, countProp, totalProp, scale) {
     const player = Game.getPlayer(socket.id, socketIdToPlayerId);
     if (!player) return;
-    // Safety checks
+    
     if (!player[costProp]) player[costProp] = 100;
     if (!player[countProp]) player[countProp] = 0;
 
@@ -62,7 +64,6 @@ function handleUpgrade(socket, costProp, countProp, totalProp, scale) {
 io.on('connection', (socket) => {
     console.log(`User connected: ${socket.id}`);
 
-    // Initial State Send
     broadcastGameState();
     Config.THRESHOLDS.forEach(t => {
         if(t.revealed) socket.emit('unlockCodePiece', { code: t.code, position: t.position });
@@ -77,7 +78,7 @@ io.on('connection', (socket) => {
     socket.on('startExpedition', () => {
         if (!Game.isExpeditionStarted) {
             Game.setExpeditionStarted(true);
-            Game.setGameUnlocked(true); // Ensure this is true
+            Game.setGameUnlocked(true); 
             io.emit('gameUnlocked');
             io.emit('announcement', { text: "THE EXCAVATION HAS BEGUN!", duration: 10000, priority: 3 });
             broadcastGameState();
@@ -123,9 +124,8 @@ io.on('connection', (socket) => {
     socket.on('sacrificeForParty', () => {
         const player = Game.getPlayer(socket.id, socketIdToPlayerId);
         if (player && player.score >= Game.getSacrificeCost()) {
-            // EXPONENTIAL LOGIC (Double)
             let currentMult = Game.getMultiplier();
-            Game.setMultiplier(currentMult * 2);
+            Game.setMultiplier(currentMult * 2); // Doubling Logic
             
             Game.multiplySacrificeCost(5);
             player.sacrifices++;
@@ -137,6 +137,10 @@ io.on('connection', (socket) => {
             player.score = 0;
             player.helpers = 0; player.tnt = 0; player.drills = 0; player.excavators = 0;
             player.clickPower = 1; player.critChance = 0; player.synergyLevel = 0;
+            
+            // FIXED: Reset tracked counts so "Owned" numbers go back to 0
+            player.totalClickUpgrades = 0;
+            player.totalHammerUpgrades = 0;
             
             // Reset Costs
             player.nextHelperCost = Config.COSTS.HELPER;
@@ -152,14 +156,12 @@ io.on('connection', (socket) => {
         }
     });
 
-    // --- ATTACKS & FUN ---
     const handleAttack = (socket, targetId, cost, type, msg, eventName) => {
         const attacker = Game.getPlayer(socket.id, socketIdToPlayerId);
         if (attacker && attacker.score >= cost && socketIdToPlayerId[socket.id] !== targetId) {
             attacker.score -= cost;
             attacker.attackCost = (attacker.attackCost || 0) + cost;
             
-            // Record History
             const targetSocket = Object.keys(socketIdToPlayerId).find(sid => socketIdToPlayerId[sid] === targetId);
             const targetPlayer = Game.players[targetId];
             if (targetPlayer) {
@@ -184,7 +186,7 @@ io.on('connection', (socket) => {
         const player = Game.getPlayer(socket.id, socketIdToPlayerId);
         if (player && !player.foundSecret) {
             player.foundSecret = true;
-            const bonus = Config.CONSTANTS.HIDDEN_CAT_BONUS * Game.getMultiplier();
+            const bonus = Config.CONSTANTS.HIDDEN_CAT_BASE * Game.getMultiplier();
             player.score += bonus;
             player.totalEarnedMass += bonus;
             io.emit('announcement', { text: `${player.name} found the secret! (+${bonus.toLocaleString()})`, duration: 5000, priority: 2 });
@@ -203,7 +205,6 @@ io.on('connection', (socket) => {
     });
 });
 
-// --- GAME LOOP ---
 setInterval(() => {
     let totalScore = 0;
     for (const id in Game.players) {
