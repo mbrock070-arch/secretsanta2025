@@ -1,3 +1,4 @@
+/* ... keep :root and * ... */
 :root { 
     --main-bg-color: #D7CCC8; --text-color: #3E2723; --accent-color: #BF360C;
     --ui-light: #EFEBE9; --ui-dark: #8D6E63;
@@ -35,8 +36,8 @@ body {
 #progress-bar-fill { height: 100%; width: 0%; background-color: var(--progress-fill); background-image: linear-gradient(45deg, rgba(255,255,255,.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.15) 75%, transparent 75%, transparent); background-size: 20px 20px; transition: width 0.5s ease-in-out; }
 #progress-text { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; font-weight: bold; text-shadow: 1px 1px 2px black; line-height: 1; }
 
-/* Huge padding for mobile browsers */
-.main-content { flex-grow: 1; width: 100%; overflow-y: auto; overflow-x: hidden; padding: 10px 20px 160px 20px; transition: transform 0.5s ease-in-out; -webkit-overflow-scrolling: touch; position: relative; }
+/* UPDATED: 250px bottom padding to clear mobile browser bars */
+.main-content { flex-grow: 1; width: 100%; overflow-y: auto; overflow-x: hidden; padding: 10px 20px 250px 20px; transition: transform 0.5s ease-in-out; -webkit-overflow-scrolling: touch; position: relative; }
 .page { display: none; flex-direction: column; align-items: center; text-align: center; padding-bottom: 20px; }
 .page.active { display: flex; }
 
