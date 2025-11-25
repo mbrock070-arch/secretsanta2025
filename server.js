@@ -10,11 +10,12 @@ const httpServer = http.createServer(app);
 const io = new Server(httpServer, { cors: { origin: "*" } });
 const port = process.env.PORT || 3000;
 
-// OLD (WRONG):
-// app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'index.html')); });
+app.use(express.static(path.join(__dirname, 'public')));
 
-// NEW (CORRECT):
-app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'index.html')); });
+// Explicit index route to be safe
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 let socketIdToPlayerId = {};
 
@@ -88,7 +89,9 @@ io.on('connection', (socket) => {
     socket.on('playerClick', () => {
         const player = Game.getPlayer(socket.id, socketIdToPlayerId);
         if (player && (Game.isExpeditionStarted || !Game.isGameUnlocked) && !Game.isGameOver) {
+            // Track total clicks for awards
             player.totalClicks = (player.totalClicks || 0) + 1;
+
             const passive = (player.helpers * 1) + (player.tnt * 10) + (player.drills * 50) + (player.excavators * 500);
             const synergy = passive * (player.synergyLevel * Config.CONSTANTS.SYNERGY_PER_LEVEL);
             let hit = (player.clickPower + synergy) * Game.getMultiplier();
@@ -125,7 +128,7 @@ io.on('connection', (socket) => {
         const player = Game.getPlayer(socket.id, socketIdToPlayerId);
         if (player && player.score >= Game.getSacrificeCost()) {
             let currentMult = Game.getMultiplier();
-            Game.setMultiplier(currentMult * 2); // Doubling Logic
+            Game.setMultiplier(currentMult * 2); // Exponential Doubling
             
             Game.multiplySacrificeCost(5);
             player.sacrifices++;
@@ -138,7 +141,7 @@ io.on('connection', (socket) => {
             player.helpers = 0; player.tnt = 0; player.drills = 0; player.excavators = 0;
             player.clickPower = 1; player.critChance = 0; player.synergyLevel = 0;
             
-            // FIXED: Reset tracked counts so "Owned" numbers go back to 0
+            // Reset tracked counts so "Owned" numbers go back to 0
             player.totalClickUpgrades = 0;
             player.totalHammerUpgrades = 0;
             

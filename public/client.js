@@ -17,13 +17,12 @@ let canClick = true;
 // --- STATE VARIABLES ---
 let isGremlined = false;
 let tutorialClicks = 0;
-let gameIsUnlocked = false; // Local state tracking
+let gameIsUnlocked = false; 
 let hasJoined = false;
 let isHost = false;
 let totalPlayers = 1;
 let myCurrentScore = 0;
 
-// Audio Unlock
 function unlockAudio() {
     for (let key in sounds) {
         if(sounds[key]) {
@@ -89,7 +88,7 @@ const elements = {
     codeBoxes: document.querySelectorAll('.code-box'),
     codeGoals: document.querySelectorAll('.code-goal'), 
     
-    // STATS Game Tab
+    // STATS
     statGeologist: document.getElementById('stat-geologist'),
     statTnt: document.getElementById('stat-tnt'),
     statDrill: document.getElementById('stat-drill'),
@@ -110,7 +109,6 @@ const elements = {
     tabNav: document.querySelector('.tab-nav'),
     pages: document.querySelectorAll('.page'),
     
-    // OVERLAYS & BUTTONS
     tutorialOverlay: document.getElementById('tutorial-overlay'),
     inviteOverlay: document.getElementById('invite-overlay'),
     waitingOverlay: document.getElementById('waiting-overlay'),
@@ -168,7 +166,7 @@ function getPlayerId() {
 
 function unlockFullGame() {
     gameIsUnlocked = true;
-    elements.tutorialOverlay.style.display = 'none'; // Force hide tutorial
+    elements.tutorialOverlay.style.display = 'none'; 
     elements.lockedFeatures.forEach(el => el.classList.remove('locked-feature'));
     elements.rockText.textContent = "MINE ROCK!";
 }
@@ -215,8 +213,6 @@ const updateBtnTitle = (el, title, count) => {
     el.textContent = count > 0 ? `${title} (Owned: ${count})` : title;
 };
 
-// --- SOCKET EVENTS ---
-
 socket.on('disconnect', () => { elements.disconnectOverlay.style.display = 'flex'; });
 socket.on('connect_error', () => { elements.disconnectOverlay.style.display = 'flex'; });
 
@@ -255,9 +251,16 @@ elements.clickerButton.addEventListener('click', (e) => {
         y = rect.top + rect.height / 2;
     }
     
-    // Purely visual calculation for particle
-    let val = 1; 
-    createParticle(x, y, val, false);
+    const synergyBonus = myPassiveIncome * (mySynergy * 0.02);
+    let val = (myClickPower + synergyBonus) * myMulti;
+    
+    let isCrit = false;
+    if (Math.random() * 100 < myCritChance) {
+        val *= 10; 
+        isCrit = true;
+    }
+    
+    createParticle(x, y, val, isCrit);
 
     if (!gameIsUnlocked) {
         tutorialClicks++;
@@ -321,13 +324,9 @@ elements.leaderboard.addEventListener('click', (event) => {
     } 
 });
 
-// --- STATE UPDATES ---
-
 socket.on('gameStateUpdate', (state) => {
-    // SYNC LOCAL VARIABLE
     gameIsUnlocked = state.isGameUnlocked;
 
-    // 1. Handle "Caught in Limbo" State (Server Unlocked, Client Just Joined)
     if (state.isGameUnlocked && !state.isExpeditionStarted) {
         if (hasJoined) {
             if (isHost) {
@@ -337,7 +336,7 @@ socket.on('gameStateUpdate', (state) => {
                 elements.inviteOverlay.style.display = 'none';
                 elements.waitingOverlay.style.display = 'flex';
             }
-            unlockFullGame(); // Forces tutorial overlay to hide
+            unlockFullGame();
         }
     }
     
@@ -461,13 +460,11 @@ socket.on('gameStateUpdate', (state) => {
         updateBtnTitle(elements.synergyTitle, "Middle Manager", myServerState.synergyLevel || 0);
         
         checkAffordability(myServerState.nextPowerClickCost, elements.btnClick);
-        // FIXED: Use totalClickUpgrades so it doesn't reset visually to 1 on earthquake
         updateBtnTitle(elements.clickTitle, "Pickaxe", myServerState.totalClickUpgrades || 0);
         
         if (lifetime < 300) elements.btnHammer.classList.add('hidden-upgrade'); 
         else elements.btnHammer.classList.remove('hidden-upgrade');
         checkAffordability(myServerState.nextHammerCost || 500, elements.btnHammer);
-        // FIXED: Use totalHammerUpgrades
         updateBtnTitle(elements.hammerTitle, "Pneumatic", myServerState.totalHammerUpgrades || 0);
         
         if (lifetime < 7500 * 0.66) elements.sacrificeButton.classList.add('hidden-upgrade'); 
