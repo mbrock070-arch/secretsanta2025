@@ -3,11 +3,14 @@ const Config = require('./gameConfig');
 // FIXED: Use 'const' so the reference never breaks
 const players = {}; 
 
-let partyMultiplier = 1;
-let sacrificeCost = Config.COSTS.SACRIFICE_START;
-let isGameUnlocked = false;
-let isExpeditionStarted = false;
-let isGameOver = false;
+// FIXED: Move primitives into an object so they are passed by reference
+const state = {
+    partyMultiplier: 1,
+    sacrificeCost: Config.COSTS.SACRIFICE_START,
+    isGameUnlocked: false,
+    isExpeditionStarted: false,
+    isGameOver: false
+};
 
 function getPlayer(socketId, socketIdMap) {
     const playerId = socketIdMap[socketId];
@@ -45,36 +48,23 @@ function initPlayer(id, name) {
 }
 
 function resetGame() {
-    // FIXED: Do not reassign players = {}. That breaks the link to server.js.
-    // Instead, delete all keys.
+    // Delete keys to preserve object reference
     for (const key in players) {
         delete players[key];
     }
     
-    partyMultiplier = 1;
-    sacrificeCost = Config.COSTS.SACRIFICE_START;
-    isGameUnlocked = false;
-    isExpeditionStarted = false;
-    isGameOver = false;
+    state.partyMultiplier = 1;
+    state.sacrificeCost = Config.COSTS.SACRIFICE_START;
+    state.isGameUnlocked = false;
+    state.isExpeditionStarted = false;
+    state.isGameOver = false;
     Config.THRESHOLDS.forEach(t => t.revealed = false);
 }
 
 module.exports = {
     players,
-    partyMultiplier,
-    sacrificeCost,
-    isGameUnlocked,
-    isExpeditionStarted,
-    isGameOver,
+    state, // Export the state object directly
     getPlayer,
     initPlayer,
-    resetGame,
-    getMultiplier: () => partyMultiplier,
-    setMultiplier: (val) => partyMultiplier = val,
-    addMultiplier: (val) => partyMultiplier += val,
-    getSacrificeCost: () => sacrificeCost,
-    multiplySacrificeCost: (val) => sacrificeCost *= val,
-    setGameUnlocked: (val) => isGameUnlocked = val,
-    setExpeditionStarted: (val) => isExpeditionStarted = val,
-    setGameOver: (val) => isGameOver = val
+    resetGame
 };

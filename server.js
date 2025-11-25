@@ -12,7 +12,6 @@ const port = process.env.PORT || 3000;
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Explicit index route to be safe
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -32,11 +31,11 @@ function broadcastGameState() {
 
     io.emit('gameStateUpdate', {
         players: Game.players,
-        partyMultiplier: Game.getMultiplier(),
-        sacrificeCost: Game.getSacrificeCost(),
-        isGameUnlocked: Game.isGameUnlocked,
-        isExpeditionStarted: Game.isExpeditionStarted,
-        isGameOver: Game.isGameOver,
+        partyMultiplier: Game.state.partyMultiplier,
+        sacrificeCost: Game.state.sacrificeCost,
+        isGameUnlocked: Game.state.isGameUnlocked,
+        isExpeditionStarted: Game.state.isExpeditionStarted,
+        isGameOver: Game.state.isGameOver,
         nextGoal,
         thresholds: thresholdData
     });
@@ -77,9 +76,9 @@ io.on('connection', (socket) => {
     });
 
     socket.on('startExpedition', () => {
-        if (!Game.isExpeditionStarted) {
-            Game.setExpeditionStarted(true);
-            Game.setGameUnlocked(true); 
+        if (!Game.state.isExpeditionStarted) {
+            Game.state.isExpeditionStarted = true;
+            Game.state.isGameUnlocked = true; 
             io.emit('gameUnlocked');
             io.emit('announcement', { text: "THE EXCAVATION HAS BEGUN!", duration: 10000, priority: 3 });
             broadcastGameState();
@@ -88,19 +87,24 @@ io.on('connection', (socket) => {
 
     socket.on('playerClick', () => {
         const player = Game.getPlayer(socket.id, socketIdToPlayerId);
-        if (player && (Game.isExpeditionStarted || !Game.isGameUnlocked) && !Game.isGameOver) {
-            // Track total clicks for awards
-            player.totalClicks = (player.totalClicks || 0) + 1;
+        
+        // FIXED: Allow clicks if score < 100 (Tutorial Phase safety net)
+        // This ensures new players can always mine even if state is "Lobby"
+        if (player && (!Game.state.isGameOver)) {
+            const canMine = Game.state.isExpeditionStarted || !Game.state.isGameUnlocked || player.score < 100;
+            
+            if (canMine) {
+                player.totalClicks = (player.totalClicks || 0) + 1;
+                const passive = (player.helpers * 1) + (player.tnt * 10) + (player.drills * 50) + (player.excavators * 500);
+                const synergy = passive * (player.synergyLevel * Config.CONSTANTS.SYNERGY_PER_LEVEL);
+                let hit = (player.clickPower + synergy) * Game.state.partyMultiplier;
 
-            const passive = (player.helpers * 1) + (player.tnt * 10) + (player.drills * 50) + (player.excavators * 500);
-            const synergy = passive * (player.synergyLevel * Config.CONSTANTS.SYNERGY_PER_LEVEL);
-            let hit = (player.clickPower + synergy) * Game.getMultiplier();
+                const chance = Math.min(Config.CONSTANTS.CRIT_CHANCE_CAP, player.critChance);
+                if (Math.random() * 100 < chance) hit *= 10;
 
-            const chance = Math.min(Config.CONSTANTS.CRIT_CHANCE_CAP, player.critChance);
-            if (Math.random() * 100 < chance) hit *= 10;
-
-            player.score += hit;
-            player.totalEarnedMass += hit;
+                player.score += hit;
+                player.totalEarnedMass += hit;
+            }
         }
     });
 
@@ -126,14 +130,15 @@ io.on('connection', (socket) => {
 
     socket.on('sacrificeForParty', () => {
         const player = Game.getPlayer(socket.id, socketIdToPlayerId);
-        if (player && player.score >= Game.getSacrificeCost()) {
-            let currentMult = Game.getMultiplier();
-            Game.setMultiplier(currentMult * 2); // Exponential Doubling
+        if (player && player.score >= Game.state.sacrificeCost) {
             
-            Game.multiplySacrificeCost(5);
+            // Exponential Doubling
+            Game.state.partyMultiplier *= 2;
+            
+            Game.state.sacrificeCost *= 5; 
             player.sacrifices++;
 
-            io.emit('earthquakeTriggered', { name: player.name, multiplier: Game.getMultiplier() });
+            io.emit('earthquakeTriggered', { name: player.name, multiplier: Game.state.partyMultiplier });
             io.emit('announcement', { text: `${player.name} triggered an EARTHQUAKE! Multiplier DOUBLED!`, duration: 5000, priority: 3 });
 
             // Reset Player
@@ -141,7 +146,6 @@ io.on('connection', (socket) => {
             player.helpers = 0; player.tnt = 0; player.drills = 0; player.excavators = 0;
             player.clickPower = 1; player.critChance = 0; player.synergyLevel = 0;
             
-            // Reset tracked counts so "Owned" numbers go back to 0
             player.totalClickUpgrades = 0;
             player.totalHammerUpgrades = 0;
             
@@ -189,7 +193,7 @@ io.on('connection', (socket) => {
         const player = Game.getPlayer(socket.id, socketIdToPlayerId);
         if (player && !player.foundSecret) {
             player.foundSecret = true;
-            const bonus = Config.CONSTANTS.HIDDEN_CAT_BASE * Game.getMultiplier();
+            const bonus = Config.CONSTANTS.HIDDEN_CAT_BASE * Game.state.partyMultiplier;
             player.score += bonus;
             player.totalEarnedMass += bonus;
             io.emit('announcement', { text: `${player.name} found the secret! (+${bonus.toLocaleString()})`, duration: 5000, priority: 2 });
@@ -212,8 +216,8 @@ setInterval(() => {
     let totalScore = 0;
     for (const id in Game.players) {
         const player = Game.players[id];
-        if (Game.isExpeditionStarted && !Game.isGameOver) {
-            const gain = (player.helpers * 1 + player.tnt * 10 + player.drills * 50 + player.excavators * 500) * Game.getMultiplier();
+        if (Game.state.isExpeditionStarted && !Game.state.isGameOver) {
+            const gain = (player.helpers * 1 + player.tnt * 10 + player.drills * 50 + player.excavators * 500) * Game.state.partyMultiplier;
             if (!isNaN(gain)) {
                 player.score += gain;
                 player.totalEarnedMass += gain;
@@ -227,8 +231,8 @@ setInterval(() => {
             t.revealed = true;
             io.emit('unlockCodePiece', { code: t.code, position: t.position });
 
-            if (index === Config.THRESHOLDS.length - 1 && !Game.isGameOver) {
-                Game.setGameOver(true);
+            if (index === Config.THRESHOLDS.length - 1 && !Game.state.isGameOver) {
+                Game.state.isGameOver = true;
                 const fullCode = [...Config.THRESHOLDS].sort((a, b) => a.position - b.position).map(x => x.code).join('');
                 io.emit('gameOver', { players: Game.players, fullCode });
                 broadcastGameState();
