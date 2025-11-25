@@ -52,7 +52,6 @@ const elements = {
     nameInput: document.getElementById('name-input'),
     joinButton: document.getElementById('join-button'),
     
-    // BUTTONS
     purchaseHelperButton: document.getElementById('purchase-helper-button'),
     purchaseTntButton: document.getElementById('purchase-tnt-button'),
     purchaseDrillButton: document.getElementById('purchase-drill-button'),
@@ -63,7 +62,6 @@ const elements = {
     purchaseSynergyButton: document.getElementById('purchase-synergy-button'),
     sacrificeButton: document.getElementById('sacrifice-button'),
     
-    // COSTS
     helperCostDisplay: document.getElementById('helper-cost-display'),
     tntCostDisplay: document.getElementById('tnt-cost-display'),
     drillCostDisplay: document.getElementById('drill-cost-display'),
@@ -74,7 +72,6 @@ const elements = {
     synergyCostDisplay: document.getElementById('synergy-cost-display'),
     sacrificeCostDisplay: document.getElementById('sacrifice-cost-display'),
     
-    // TITLES
     helperTitle: document.getElementById('helper-title'),
     tntTitle: document.getElementById('tnt-title'),
     drillTitle: document.getElementById('drill-title'),
@@ -88,7 +85,6 @@ const elements = {
     codeBoxes: document.querySelectorAll('.code-box'),
     codeGoals: document.querySelectorAll('.code-goal'), 
     
-    // STATS
     statGeologist: document.getElementById('stat-geologist'),
     statTnt: document.getElementById('stat-tnt'),
     statDrill: document.getElementById('stat-drill'),
@@ -96,7 +92,6 @@ const elements = {
     statCrit: document.getElementById('stat-crit'),
     statSynergy: document.getElementById('stat-synergy'),
     
-    // STAT VALUES
     myHelpersDisplay: document.getElementById('my-helpers-display'),
     myTntDisplay: document.getElementById('my-tnt-display'),
     myDrillsDisplay: document.getElementById('my-drills-display'),
@@ -131,17 +126,6 @@ const elements = {
     confirmStartBtn: document.getElementById('confirm-start-btn'),
     cancelStartBtn: document.getElementById('cancel-start-btn'),
     disconnectOverlay: document.getElementById('disconnect-overlay'),
-    
-    // BTN REFS
-    btnHelper: document.getElementById('purchase-helper-button'),
-    btnTnt: document.getElementById('purchase-tnt-button'),
-    btnDrill: document.getElementById('purchase-drill-button'),
-    btnExcavator: document.getElementById('purchase-excavator-button'),
-    btnClick: document.getElementById('purchase-power-click-button'),
-    btnHammer: document.getElementById('purchase-hammer-button'),
-    btnCrit: document.getElementById('purchase-crit-button'),
-    btnSynergy: document.getElementById('purchase-synergy-button'),
-    btnSacrifice: document.getElementById('sacrifice-button'),
     
     helpBtn: document.getElementById('help-btn'),
     helpOverlay: document.getElementById('help-overlay'),
@@ -251,16 +235,8 @@ elements.clickerButton.addEventListener('click', (e) => {
         y = rect.top + rect.height / 2;
     }
     
-    const synergyBonus = myPassiveIncome * (mySynergy * 0.02);
-    let val = (myClickPower + synergyBonus) * myMulti;
-    
-    let isCrit = false;
-    if (Math.random() * 100 < myCritChance) {
-        val *= 10; 
-        isCrit = true;
-    }
-    
-    createParticle(x, y, val, isCrit);
+    let val = 1; 
+    createParticle(x, y, val, false);
 
     if (!gameIsUnlocked) {
         tutorialClicks++;
@@ -534,6 +510,7 @@ socket.on('gameOver', (data) => {
     
     const playerArray = Object.values(players);
     
+    // AWARDS CALCULATIONS
     const maxMass = Math.max(...playerArray.map(p => p.totalEarnedMass));
     const minMass = Math.min(...playerArray.map(p => p.totalEarnedMass));
     const maxQuakes = Math.max(...playerArray.map(p => p.sacrifices));
